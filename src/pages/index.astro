@@ -1,0 +1,95 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Container from '../components/Container.astro';
+import { withBase } from '../lib/url';
+
+// Forward-looking section descriptions only — NO entity data is rendered here.
+// Real listings arrive in Phase 1+ from sourced frontmatter.
+const layers = [
+  {
+    kicker: 'Education',
+    title: 'Understand the mechanics before the pitch',
+    body: 'Plain-English lessons on cap tables, dilution, evaluating a Reg CF/A raise, reading a Form C, and the ways deals fail.',
+    href: withBase('/lessons/'),
+    cta: 'Read the lessons',
+  },
+  {
+    kicker: 'Directory',
+    title: 'A sourced accountability graph',
+    body: 'Portals, promoters, and deals — each profile built from cited facts, with track records computed from a disclosed methodology, never hand-authored.',
+    href: withBase('/portals/'),
+    cta: 'Browse the directory',
+  },
+  {
+    kicker: 'Community',
+    title: 'Argue the facts, in the open',
+    body: 'Discussion lives in a clearly separated layer beneath each profile. Editorial content stays factual; opinion stays in the comments.',
+    href: withBase('/methodology/'),
+    cta: 'See how it works',
+  },
+];
+---
+
+<BaseLayout title="CrowdfundingSucks">
+  <section class="border-b border-rule">
+    <Container class="py-20 sm:py-28">
+      <p class="text-sm font-semibold uppercase tracking-wide text-accent">
+        Investor education &amp; accountability
+      </p>
+      <h1 class="mt-4 max-w-3xl text-4xl font-semibold text-ink sm:text-5xl">
+        Equity crowdfunding, on the record.
+      </h1>
+      <p class="mt-6 max-w-2xl text-lg leading-relaxed text-muted">
+        Learn how these deals actually work, then look up the portals,
+        promoters, and campaigns behind them — with track records computed from
+        publicly cited facts. No hype, no characterizations, no unsourced
+        numbers.
+      </p>
+      <div class="mt-8 flex flex-wrap gap-3">
+        <a
+          href={withBase('/lessons/')}
+          class="rounded-md bg-ink px-5 py-2.5 text-sm font-medium text-paper no-underline transition-opacity hover:opacity-90"
+        >
+          Start with the lessons
+        </a>
+        <a
+          href={withBase('/methodology/')}
+          class="rounded-md border border-rule px-5 py-2.5 text-sm font-medium text-ink no-underline transition-colors hover:bg-paper-raised"
+        >
+          How we score
+        </a>
+      </div>
+    </Container>
+  </section>
+
+  <Container class="py-16">
+    <div class="grid gap-px overflow-hidden rounded-lg border border-rule bg-rule sm:grid-cols-3">
+      {
+        layers.map((l) => (
+          <a
+            href={l.href}
+            class="group flex flex-col bg-paper-raised p-7 no-underline transition-colors hover:bg-paper"
+          >
+            <span class="text-xs font-semibold uppercase tracking-wide text-accent">
+              {l.kicker}
+            </span>
+            <span class="mt-3 font-serif text-xl text-ink">{l.title}</span>
+            <span class="mt-2 flex-1 text-sm leading-relaxed text-muted">
+              {l.body}
+            </span>
+            <span class="mt-5 text-sm font-medium text-ink group-hover:underline">
+              {l.cta} &rarr;
+            </span>
+          </a>
+        ))
+      }
+    </div>
+
+    <p class="mt-10 max-w-2xl text-sm leading-relaxed text-faint">
+      This is not investment advice. Track records are arithmetic over cited
+      facts, computed at build time via a
+      <a href={withBase('/methodology/')} class="text-muted underline">disclosed methodology</a>.
+      A claim with no source does not render.
+    </p>
+  </Container>
+</BaseLayout>

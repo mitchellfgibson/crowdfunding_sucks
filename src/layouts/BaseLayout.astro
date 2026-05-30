@@ -1,0 +1,73 @@
+---
+import '../styles/global.css';
+import SiteHeader from '../components/SiteHeader.astro';
+import SiteFooter from '../components/SiteFooter.astro';
+import { withBase } from '../lib/url';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** Set false on pages that should not be indexed (e.g. utility routes). */
+  index?: boolean;
+}
+
+const {
+  title,
+  description = 'Investor education and a sourced accountability directory for equity crowdfunding.',
+  index = true,
+}: Props = Astro.props;
+
+const siteName = 'CrowdfundingSucks';
+const fullTitle = title === siteName ? title : `${title} — ${siteName}`;
+
+// Canonical URL — relies on `site` in astro.config.mjs (pathname already
+// includes the base path at build time).
+const canonical = Astro.site
+  ? new URL(Astro.url.pathname, Astro.site).href
+  : Astro.url.pathname;
+
+// Plausible only loads when a domain is configured (see README / host env).
+const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" href={withBase('/favicon.svg')} type="image/svg+xml" />
+    <link rel="sitemap" href={withBase('/sitemap-index.xml')} />
+    <link rel="alternate" type="application/rss+xml" title={siteName} href={withBase('/rss.xml')} />
+    <link rel="canonical" href={canonical} />
+
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    {!index && <meta name="robots" content="noindex, nofollow" />}
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:title" content={fullTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    {
+      plausibleDomain && (
+        <script
+          is:inline
+          defer
+          data-domain={plausibleDomain}
+          src="https://plausible.io/js/script.js"
+        />
+      )
+    }
+  </head>
+  <body class="flex min-h-dvh flex-col">
+    <SiteHeader />
+    <main class="flex-1">
+      <slot />
+    </main>
+    <SiteFooter />
+  </body>
+</html>

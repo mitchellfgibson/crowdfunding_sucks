@@ -1,0 +1,55 @@
+---
+import Container from './Container.astro';
+import { withBase } from '../lib/url';
+
+/**
+ * Top nav. Every link points at a real route; pages may be stubs in early
+ * phases but the information architecture is fixed here. Links go through
+ * withBase() so they work under the Pages base path.
+ */
+const nav = [
+  { label: 'Lessons', href: withBase('/lessons/') },
+  { label: 'Portals', href: withBase('/portals/') },
+  { label: 'Gurus', href: withBase('/gurus/') },
+  { label: 'Deals', href: withBase('/deals/') },
+  { label: 'Methodology', href: withBase('/methodology/') },
+];
+
+const path = Astro.url.pathname;
+const isActive = (href: string) => path === href || path.startsWith(href);
+---
+
+<header class="border-b border-rule bg-paper/85 backdrop-blur sticky top-0 z-20">
+  <Container>
+    <div class="flex h-16 items-center justify-between gap-6">
+      <a
+        href={withBase('/')}
+        class="font-serif text-xl font-semibold tracking-tight text-ink no-underline"
+      >
+        Crowdfunding<span class="text-muted">Sucks</span>
+      </a>
+      <nav aria-label="Primary">
+        <ul class="flex items-center gap-5 text-sm">
+          {
+            nav.map((item) => (
+              <li>
+                <a
+                  href={item.href}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
+                  class:list={[
+                    'no-underline transition-colors',
+                    isActive(item.href)
+                      ? 'text-ink font-medium'
+                      : 'text-muted hover:text-ink',
+                  ]}
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+      </nav>
+    </div>
+  </Container>
+</header>

@@ -1,0 +1,86 @@
+---
+import Container from './Container.astro';
+import { withBase } from '../lib/url';
+
+/**
+ * Standing footer — the always-on legal surface (CLAUDE.md layout note,
+ * BUILD_PLAN §2.6). Renders on every page via BaseLayout. The "not investment
+ * advice" + editorial-boundary language is structural, not decorative.
+ *
+ * Links go through withBase() for the Pages base path. Routes are reserved now
+ * so the IA is stable even where pages are placeholders.
+ */
+const year = new Date().getFullYear();
+
+const cols = [
+  {
+    heading: 'Site',
+    links: [
+      { label: 'Lessons', href: withBase('/lessons/') },
+      { label: 'Portals', href: withBase('/portals/') },
+      { label: 'Gurus', href: withBase('/gurus/') },
+      { label: 'Deals', href: withBase('/deals/') },
+    ],
+  },
+  {
+    heading: 'About',
+    links: [
+      { label: 'Methodology', href: withBase('/methodology/') },
+      { label: 'Right of reply', href: withBase('/right-of-reply/') },
+      { label: 'Contact / DMCA', href: withBase('/contact/') },
+      { label: 'RSS', href: withBase('/rss.xml') },
+    ],
+  },
+];
+---
+
+<footer class="mt-24 border-t border-rule bg-paper-raised">
+  <Container>
+    <div class="grid gap-10 py-12 md:grid-cols-[1.6fr_1fr_1fr]">
+      <div class="max-w-sm">
+        <p class="font-serif text-lg text-ink">CrowdfundingSucks</p>
+        <p class="mt-2 text-sm leading-relaxed text-muted">
+          Investor education and an accountability directory of crowdfunding
+          portals, promoters, and deals — built on sourced, verifiable facts.
+        </p>
+      </div>
+      {
+        cols.map((col) => (
+          <nav aria-label={col.heading}>
+            <p class="text-xs font-semibold uppercase tracking-wide text-faint">
+              {col.heading}
+            </p>
+            <ul class="mt-3 space-y-2 text-sm">
+              {col.links.map((l) => (
+                <li>
+                  <a href={l.href} class="text-muted no-underline hover:text-ink">
+                    {l.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        ))
+      }
+    </div>
+
+    <div class="border-t border-rule py-8 text-xs leading-relaxed text-faint">
+      <p>
+        <strong class="font-semibold text-muted">Not investment advice.</strong>
+        Nothing on this site is a recommendation to buy, sell, or hold any
+        security. Track records are computed from publicly cited facts using a
+        <a href={withBase('/methodology/')} class="text-muted underline">disclosed methodology</a>;
+        a datum with no source does not appear. Outcomes describe verifiable
+        events only.
+      </p>
+      <p class="mt-3">
+        Editorial content on this site is factual and cited. Community opinion
+        lives only in the discussion section beneath each page, which is not
+        editorial content. Profiled parties may use the
+        <a href={withBase('/right-of-reply/')} class="text-muted underline">right-of-reply</a>
+        process.
+      </p>
+      <p class="mt-3">&copy; {year} CrowdfundingSucks. All rights reserved.</p>
+    </div>
+  </Container>
+</footer>

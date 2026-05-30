@@ -1,0 +1,19 @@
+---
+/**
+ * Layout width primitive. `width="prose"` constrains to the reading measure for
+ * long-form; default is the wider site column.
+ */
+interface Props {
+  width?: 'site' | 'prose';
+  as?: keyof HTMLElementTagNameMap;
+  class?: string;
+}
+
+const { width = 'site', as = 'div', class: className = '' }: Props = Astro.props;
+const Tag = as;
+const max = width === 'prose' ? 'max-w-[var(--spacing-measure)]' : 'max-w-5xl';
+---
+
+<Tag class:list={['mx-auto w-full px-5 sm:px-6', max, className]}>
+  <slot />
+</Tag>
