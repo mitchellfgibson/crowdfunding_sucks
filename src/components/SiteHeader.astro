@@ -38,9 +38,9 @@ const isActive = (href: string) => path === href || path.startsWith(href);
                   href={item.href}
                   aria-current={isActive(item.href) ? 'page' : undefined}
                   class:list={[
-                    'no-underline transition-colors',
+                    'no-underline font-semibold transition-colors',
                     isActive(item.href)
-                      ? 'text-ink font-medium'
+                      ? 'text-ink font-bold'
                       : 'text-muted hover:text-ink',
                   ]}
                 >
