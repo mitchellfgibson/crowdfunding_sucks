@@ -1,0 +1,128 @@
+---
+import { getCollection } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Container from '../../components/Container.astro';
+import { withBase } from '../../lib/url';
+import { REGULATION_LABEL, CATEGORY_LABEL, STATUS_LABEL } from '../../lib/portals';
+
+/**
+ * Per-portal detail page. Renders only sourced facts (CLAUDE.md rule 1): name,
+ * factual summary, regulation/category/status, official links, and citations.
+ * "Deals hosted here" is intentionally derived from the deals collection later
+ * (rule 4) — for now it's an honest placeholder.
+ */
+export const getStaticPaths = (async () => {
+  const portals = await getCollection('portals');
+  return portals.map((p) => ({ params: { portal: p.data.slug ?? p.id }, props: { portal: p } }));
+}) satisfies GetStaticPaths;
+
+const { portal } = Astro.props;
+const d = portal.data;
+
+const verified = d.lastVerified.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+});
+const host = new URL(d.url).host;
+---
+
+<BaseLayout title={`${d.name} — Crowdfunding platform`} description={d.summary}>
+  <Container class="py-10">
+    <nav class="text-xs text-faint" aria-label="Breadcrumb">
+      <a href={withBase('/')} class="text-muted no-underline hover:underline">Home</a>
+      <span class="mx-1.5">›</span>
+      <a href={withBase('/portals/')} class="text-muted no-underline hover:underline">Platforms</a>
+      <span class="mx-1.5">›</span>
+      <span class="text-ink">{d.name}</span>
+    </nav>
+
+    <header class="mt-3 border-b-2 border-ink pb-5">
+      <div class="flex flex-wrap items-center gap-3">
+        <h1 class="font-serif text-3xl text-ink">{d.name}</h1>
+        {
+          d.status !== 'operating' && (
+            <span class="rounded-full border border-rule px-2 py-0.5 text-xs font-medium text-muted">
+              {STATUS_LABEL[d.status]}
+            </span>
+          )
+        }
+      </div>
+      <p class="mt-3 max-w-2xl text-lg leading-relaxed text-muted">{d.summary}</p>
+
+      <div class="mt-4 flex flex-wrap items-center gap-2">
+        {
+          d.regulation.map((r) => (
+            <span class="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-medium text-accent">
+              {REGULATION_LABEL[r]}
+            </span>
+          ))
+        }
+        {
+          d.category && (
+            <span class="rounded-full border border-rule px-2.5 py-0.5 text-xs font-medium text-muted">
+              {CATEGORY_LABEL[d.category]}
+            </span>
+          )
+        }
+        <a
+          href={d.url}
+          rel="nofollow noopener"
+          class="rounded-full border border-rule px-2.5 py-0.5 text-xs font-medium text-accent no-underline hover:bg-accent/5"
+        >
+          {host} ↗
+        </a>
+      </div>
+    </header>
+
+    {/* facts grid */}
+    <section class="mt-6 grid gap-4 sm:grid-cols-3">
+      <div class="rounded-lg border border-rule bg-paper-raised p-4">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-wide text-faint">Status</p>
+        <p class="mt-1 text-ink">{STATUS_LABEL[d.status]}</p>
+      </div>
+      <div class="rounded-lg border border-rule bg-paper-raised p-4">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-wide text-faint">Regulation</p>
+        <p class="mt-1 text-ink">{d.regulation.map((r) => REGULATION_LABEL[r]).join(' · ') || '—'}</p>
+      </div>
+      <div class="rounded-lg border border-rule bg-paper-raised p-4">
+        <p class="text-[0.68rem] font-semibold uppercase tracking-wide text-faint">Last verified</p>
+        <p class="mt-1 text-ink">{verified}</p>
+      </div>
+    </section>
+
+    {/* deals hosted — derived from deals collection later (rule 4) */}
+    <section class="mt-8">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-faint">Deals hosted here</h2>
+      <p class="mt-2 rounded-lg border border-dashed border-rule px-4 py-5 text-sm text-muted">
+        Individual deals raised on {d.name} will be listed here as the deals
+        directory is populated — each linked to this platform and to any tracked
+        promoter, with outcomes from public sources.
+      </p>
+    </section>
+
+    {/* sources — the firewall: every datum is cited */}
+    <section class="mt-8">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-faint">Sources</h2>
+      <ul class="mt-2 space-y-1.5 text-sm">
+        {
+          d.sources.map((s) => (
+            <li>
+              <a href={s.url} rel="nofollow noopener" class="text-accent underline">
+                {s.title ?? s.publisher ?? s.url}
+              </a>
+              {s.publisher && <span class="text-faint"> — {s.publisher}</span>}
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <p class="mt-10 border-t border-rule pt-4 text-xs leading-relaxed text-faint">
+      Factual listing only — not investment advice and not a recommendation.
+      Status reflects the platform's operating state, not an assessment of any
+      offering. <a href={withBase('/portals/')} class="text-muted underline">← All platforms</a>
+    </p>
+  </Container>
+</BaseLayout>

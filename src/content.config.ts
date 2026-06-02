@@ -109,6 +109,19 @@ const portals = defineCollection({
   schema: z.object({
     ...entityBase,
     url: z.string().url(),
+    // Regulation framework(s) the platform operates under, factual.
+    regulation: z.array(z.enum(['reg_cf', 'reg_a', 'reg_d', 'broker_dealer', 'other'])).default([]),
+    // Coarse asset focus for grouping/filtering the directory.
+    category: z
+      .enum([
+        'startup_equity',
+        'real_estate',
+        'small_business',
+        'climate',
+        'private_markets',
+        'infrastructure',
+      ])
+      .optional(),
   }),
 });
 

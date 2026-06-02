@@ -1,9 +1,100 @@
 ---
-import Placeholder from '../components/Placeholder.astro';
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Container from '../components/Container.astro';
+import { withBase } from '../lib/url';
+import {
+  REGULATION_LABEL,
+  CATEGORY_LABEL,
+  CATEGORY_ORDER,
+  STATUS_LABEL,
+  portalSlug,
+} from '../lib/portals';
+
+/**
+ * Portals directory — the SEO/lead-gen surface (BUILD_PLAN Phase 1). Entries
+ * are sourced from crowdfundingsucks.com's platform directory + each platform's
+ * official site, written as cited frontmatter (src/content/portals). Summaries
+ * are factual restatements; no opinion, no unsourced numbers.
+ */
+const portals = (await getCollection('portals')).filter((p) => !p.data.draft);
+
+// group by category, in a stable order
+const byCategory = CATEGORY_ORDER.map((cat) => ({
+  cat,
+  label: CATEGORY_LABEL[cat],
+  items: portals
+    .filter((p) => p.data.category === cat)
+    .sort((a, b) => a.data.name.localeCompare(b.data.name)),
+})).filter((g) => g.items.length > 0);
+
+const operating = portals.filter((p) => p.data.status === 'operating').length;
 ---
 
-<Placeholder
-  title="Portals"
-  phase="Coming in Phase 1"
-  blurb="A directory of equity-crowdfunding platforms, each profile built from sourced, verifiable facts. Listings are being compiled from cited material."
-/>
+<BaseLayout
+  title="Crowdfunding Platforms"
+  description="A sourced directory of equity, real estate, and small-business crowdfunding platforms — regulation type, asset focus, and operating status."
+>
+  <Container class="py-10">
+    <header class="max-w-3xl">
+      <p class="text-sm font-semibold uppercase tracking-wide text-accent">Directory</p>
+      <h1 class="mt-2 text-3xl font-semibold text-ink sm:text-4xl">Crowdfunding Platforms</h1>
+      <p class="mt-4 text-lg leading-relaxed text-muted">
+        {portals.length} tracked platforms — {operating} operating — across equity,
+        real estate, small business, and private markets. Each entry lists its
+        regulation framework, asset focus, and operating status, with sources.
+      </p>
+    </header>
+
+    {
+      byCategory.map((group) => (
+        <section class="mt-10">
+          <h2 class="border-b border-rule pb-2 font-serif text-xl text-ink">{group.label}</h2>
+          <div class="mt-4 grid gap-3 sm:grid-cols-2">
+            {group.items.map((p) => (
+              <a
+                href={withBase(`/portals/${portalSlug(p)}/`)}
+                class="group flex flex-col rounded-xl border border-rule bg-paper-raised p-4 no-underline shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/5 hover:shadow-md"
+              >
+                <div class="flex items-start justify-between gap-2">
+                  <h3 class="font-semibold text-ink group-hover:text-accent">{p.data.name}</h3>
+                  {p.data.status !== 'operating' && (
+                    <span class="shrink-0 rounded-full border border-rule px-2 py-0.5 text-[0.65rem] font-medium text-faint">
+                      {STATUS_LABEL[p.data.status]}
+                    </span>
+                  )}
+                </div>
+                <p class="mt-1 flex-1 text-sm leading-relaxed text-muted">{p.data.summary}</p>
+                <div class="mt-3 flex flex-wrap gap-1.5">
+                  {p.data.regulation.map((r) => (
+                    <span class="rounded-full bg-accent/10 px-2 py-0.5 text-[0.65rem] font-medium text-accent">
+                      {REGULATION_LABEL[r]}
+                    </span>
+                  ))}
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      ))
+    }
+
+    {
+      portals.length === 0 && (
+        <p class="mt-8 rounded-xl border border-dashed border-rule px-4 py-8 text-sm text-muted">
+          No platforms yet.
+        </p>
+      )
+    }
+
+    <p class="mt-12 border-t border-rule pt-4 text-xs leading-relaxed text-faint">
+      Directory compiled from
+      <a href="https://crowdfundingsucks.com/platforms" rel="nofollow noopener" class="text-muted underline">
+        the crowdfundingsucks.com platform directory
+      </a>
+      and each platform's official site. Listings are factual; nothing here is a
+      recommendation. Status reflects each platform's operating state, not an
+      assessment of any investment.
+    </p>
+  </Container>
+</BaseLayout>
