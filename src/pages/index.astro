@@ -21,6 +21,15 @@ const following = [
   'cap table breakdowns',
   'weekly insights',
 ];
+
+// Why crowdfunding fell short — framing adapted from crowdfundingsucks.com/about.
+const failures = [
+  'Misaligned incentives',
+  'Overvalued deals',
+  'Lack of transparency',
+  'No real accountability',
+  'No investor community',
+];
 ---
 
 <BaseLayout title="CrowdfundingSucks">
@@ -50,6 +59,41 @@ const following = [
       <div class="mt-12 flex justify-center">
         <GoogleSignIn label="Join with Google" />
       </div>
+    </Container>
+  </section>
+
+  {/* why this exists — framing from crowdfundingsucks.com/about */}
+  <section class="border-b border-rule bg-paper-raised">
+    <Container class="py-16 sm:py-20">
+      <p class="max-w-2xl text-xl leading-relaxed text-muted">
+        Retail investors are rarely getting in on the ground floor — they’re
+        often entering on the <span class="font-medium text-ink">12th floor</span>.
+        Access doesn’t always mean opportunity.
+      </p>
+
+      <h2 class="mt-12 font-serif text-2xl text-ink sm:text-3xl">
+        Crowdfunding didn’t fail because of the idea.
+      </h2>
+      <p class="mt-2 text-muted">It failed because of:</p>
+      <ul class="mt-4 grid max-w-xl gap-2 sm:grid-cols-2">
+        {
+          failures.map((f) => (
+            <li class="flex items-center gap-2 text-ink">
+              <span class="text-[var(--color-flag)]" aria-hidden="true">✕</span>
+              {f}
+            </li>
+          ))
+        }
+      </ul>
+
+      <p class="mt-12 max-w-2xl font-serif text-2xl italic text-ink sm:text-3xl">
+        We’re not just exposing what’s broken. We’re building what should exist.
+      </p>
+      <p class="mt-4 max-w-2xl leading-relaxed text-muted">
+        A community where opportunities are evaluated collectively, transparency
+        is the standard, and experienced and everyday investors operate with
+        better alignment.
+      </p>
     </Container>
   </section>
 
