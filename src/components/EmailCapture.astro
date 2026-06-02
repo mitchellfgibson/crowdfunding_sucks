@@ -1,0 +1,53 @@
+---
+/**
+ * Newsletter email capture. Per CLAUDE.md, email capture is an EXTERNAL embed
+ * only — no PII is stored in this repo and there is no custom backend. The form
+ * posts directly to a hosted newsletter provider (Buttondown, ConvertKit, etc.)
+ * when PUBLIC_NEWSLETTER_ACTION is set; until then it renders a labeled,
+ * inert preview so the page never silently drops sign-ups.
+ *
+ * Set in the host env (e.g. Vercel/GitHub) — NOT committed:
+ *   PUBLIC_NEWSLETTER_ACTION  the provider's form POST endpoint
+ *   PUBLIC_NEWSLETTER_FIELD   the email input's field name (default "email")
+ */
+interface Props {
+  cta?: string;
+  note?: string;
+}
+const { cta = 'Get the free newsletter', note = 'No credit card.' } = Astro.props;
+
+const action = import.meta.env.PUBLIC_NEWSLETTER_ACTION;
+const field = import.meta.env.PUBLIC_NEWSLETTER_FIELD ?? 'email';
+const live = Boolean(action);
+---
+
+<div class="w-full max-w-md">
+  <form
+    method="post"
+    action={action ?? undefined}
+    target="_blank"
+    class="flex flex-col gap-2 sm:flex-row"
+    aria-label="Newsletter sign-up"
+  >
+    <input
+      type="email"
+      name={field}
+      required
+      autocomplete="email"
+      placeholder="you@email.com"
+      disabled={!live}
+      class="flex-1 rounded-md border border-rule bg-paper-raised px-4 py-3 text-base text-ink placeholder:text-faint focus:border-accent focus:outline-none disabled:opacity-60"
+    />
+    <button
+      type="submit"
+      disabled={!live}
+      class="rounded-md bg-accent px-5 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {cta}
+    </button>
+  </form>
+  <p class="mt-2 text-xs text-faint">
+    {note}
+    {!live && <span class="text-[var(--color-notice)]"> · Sign-up goes live once the newsletter provider is connected.</span>}
+  </p>
+</div>
