@@ -1,0 +1,86 @@
+---
+import { giscusConfig, giscusEnabled } from '../lib/giscus';
+
+/**
+ * Page-level controller for all <GiscusThread> instances. Place ONCE per page.
+ * Emits the shared Giscus config and wires up lazy mounting so a page can hold
+ * many per-deal threads (one Giscus iframe is created per thread, but only when
+ * it's actually opened).
+ */
+---
+
+{
+  giscusEnabled && (
+    <>
+      <script
+        is:inline
+        type="application/json"
+        id="giscus-config"
+        set:html={JSON.stringify(giscusConfig)}
+      />
+      <script>
+        const cfgEl = document.getElementById('giscus-config');
+        if (cfgEl) {
+          const cfg = JSON.parse(cfgEl.textContent || '{}');
+
+          function buildIframeScript(term: string): HTMLScriptElement {
+            const s = document.createElement('script');
+            s.src = 'https://giscus.app/client.js';
+            s.async = true;
+            s.crossOrigin = 'anonymous';
+            const attrs: Record<string, string> = {
+              'data-repo': cfg.repo,
+              'data-repo-id': cfg.repoId,
+              'data-category': cfg.category,
+              'data-category-id': cfg.categoryId,
+              'data-mapping': 'specific',
+              'data-term': term,
+              'data-strict': '1',
+              'data-reactions-enabled': '1',
+              'data-emit-metadata': '0',
+              'data-input-position': 'top',
+              'data-theme': 'light',
+              'data-lang': 'en',
+            };
+            for (const [k, v] of Object.entries(attrs)) s.setAttribute(k, v);
+            return s;
+          }
+
+          function mount(thread: HTMLElement) {
+            if (thread.dataset.mounted === '1') return;
+            const term = thread.dataset.term;
+            const mountEl = thread.querySelector<HTMLElement>('.giscus-mount');
+            if (!term || !mountEl) return;
+            mountEl.appendChild(buildIframeScript(term));
+            thread.dataset.mounted = '1';
+          }
+
+          document.querySelectorAll<HTMLElement>('.giscus-thread').forEach((thread) => {
+            if (thread.dataset.variant === 'open') {
+              mount(thread);
+              return;
+            }
+            // toggle variant: mount on first open, then show/hide
+            const btn = thread.querySelector<HTMLButtonElement>('.giscus-toggle');
+            const mountEl = thread.querySelector<HTMLElement>('.giscus-mount');
+            const label = thread.querySelector<HTMLElement>('.giscus-toggle-label');
+            const labelText = label?.textContent || 'Discuss';
+            btn?.addEventListener('click', () => {
+              const open = mountEl?.hasAttribute('hidden');
+              if (open && mountEl) {
+                mount(thread);
+                mountEl.removeAttribute('hidden');
+                btn.setAttribute('aria-expanded', 'true');
+                if (label) label.textContent = 'Hide discussion';
+              } else if (mountEl) {
+                mountEl.setAttribute('hidden', '');
+                btn.setAttribute('aria-expanded', 'false');
+                if (label) label.textContent = labelText;
+              }
+            });
+          });
+        }
+      </script>
+    </>
+  )
+}

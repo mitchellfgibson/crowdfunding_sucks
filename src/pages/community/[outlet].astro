@@ -7,9 +7,11 @@ import Avatar from '../../components/Avatar.astro';
 import ForumPost from '../../components/ForumPost.astro';
 import PerfStat from '../../components/PerfStat.astro';
 import GiscusThread from '../../components/GiscusThread.astro';
+import GiscusController from '../../components/GiscusController.astro';
 import { withBase } from '../../lib/url';
 import { summarize, byNewest, fmtPct, fmtRate } from '../../lib/performance';
 import { bareHandle, monthYear } from '../../lib/handle';
+import { profileTerm } from '../../lib/giscus';
 
 /**
  * Forum THREAD view for a single tracked account: the dated, cited
@@ -100,7 +102,7 @@ const posts = byNewest(data.recommendations);
       </div>
       {
         posts.map((rec, i) => (
-          <ForumPost rec={rec} handle={data.name} postNo={i + 1} since={perf.firstDate} />
+          <ForumPost rec={rec} handle={data.name} postNo={i + 1} slug={slug} since={perf.firstDate} />
         ))
       }
       {
@@ -119,9 +121,16 @@ const posts = byNewest(data.recommendations);
         </span>
         <span class="h-px flex-1 bg-rule"></span>
       </div>
+      <p class="mt-3 text-sm text-muted">
+        General thread for this account. To talk about a specific deal, use its
+        <strong class="font-medium text-ink">💬 Discuss</strong> button above.
+      </p>
       <div class="mt-4">
-        <GiscusThread term={`outlet/${slug}`} />
+        <GiscusThread term={profileTerm(slug)} variant="open" />
       </div>
     </div>
   </Container>
+
+  {/* one controller per page mounts every thread above (general + per-deal) */}
+  <GiscusController />
 </BaseLayout>

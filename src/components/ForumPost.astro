@@ -2,8 +2,10 @@
 import Avatar from './Avatar.astro';
 import OutcomeBadge from './OutcomeBadge.astro';
 import ReturnFigure from './ReturnFigure.astro';
+import GiscusThread from './GiscusThread.astro';
 import { returnRatio } from '../lib/performance';
 import { bareHandle, monthYear } from '../lib/handle';
+import { dealTerm } from '../lib/giscus';
 import type { CollectionEntry } from 'astro:content';
 
 /**
@@ -11,15 +13,22 @@ import type { CollectionEntry } from 'astro:content';
  * content panel. The "author" is the outlet account; the post is one cited,
  * dated recommendation. Per the firewall the citation is always shown and the
  * return is only the computed figure (em dash when not computable).
+ *
+ * Each post carries its own per-deal discussion thread (lazy Giscus toggle),
+ * keyed by the profile slug + this deal — so people talk about each deal
+ * individually, in theRX style, within the investor's profile.
  */
 type Rec = CollectionEntry<'gurus'>['data']['recommendations'][number];
 interface Props {
   rec: Rec;
   handle: string; // e.g. "@CapTableChris"
   postNo: number; // 1-based position in the thread
+  slug: string; // profile slug, for the per-deal discussion term
   since?: Date | null;
 }
-const { rec, handle, postNo, since } = Astro.props;
+const { rec, handle, postNo, slug, since } = Astro.props;
+
+const term = dealTerm(slug, rec.target.ticker, postNo);
 
 const ratio = returnRatio(rec);
 const target = rec.target.ticker ?? 'tracked deal';
@@ -74,6 +83,11 @@ const usd = (n: number) =>
           {s.publisher ?? s.title ?? `source ${i + 1}`}
         </a>
       ))}
+    </div>
+
+    {/* per-deal discussion (lazy Giscus thread, theRX style) */}
+    <div class="mt-3 border-t border-rule pt-3">
+      <GiscusThread term={term} variant="toggle" label={`Discuss ${rec.target.ticker ?? 'this call'}`} />
     </div>
   </div>
 </article>
