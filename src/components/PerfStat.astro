@@ -1,0 +1,25 @@
+---
+/**
+ * A single labelled performance stat cell (Slack-card / dashboard flavor).
+ * `tone` optionally colors the value for gain/loss emphasis.
+ */
+interface Props {
+  label: string;
+  value: string;
+  tone?: 'gain' | 'loss' | 'neutral';
+  sub?: string;
+}
+const { label, value, tone = 'neutral', sub } = Astro.props;
+const toneClass =
+  tone === 'gain'
+    ? 'text-[var(--color-gain)]'
+    : tone === 'loss'
+      ? 'text-[var(--color-loss)]'
+      : 'text-ink';
+---
+
+<div class="rounded-md border border-rule bg-paper-raised px-3 py-2">
+  <p class="text-[0.68rem] font-semibold uppercase tracking-wide text-faint">{label}</p>
+  <p class:list={['mt-0.5 font-mono text-lg tabular-nums', toneClass]}>{value}</p>
+  {sub && <p class="text-xs text-faint">{sub}</p>}
+</div>

@@ -1,0 +1,50 @@
+---
+import OutcomeBadge from './OutcomeBadge.astro';
+import ReturnFigure from './ReturnFigure.astro';
+import { returnRatio } from '../lib/performance';
+import type { CollectionEntry } from 'astro:content';
+
+/**
+ * One recommendation as a forum-style row: target, dated thesis, outcome,
+ * computed return, and the citation link(s). Per the firewall, the citation is
+ * always shown — the claim is only as good as its source.
+ */
+type Rec = CollectionEntry<'gurus'>['data']['recommendations'][number];
+interface Props {
+  rec: Rec;
+}
+const { rec } = Astro.props;
+
+const ratio = returnRatio(rec);
+const target = rec.target.ticker ?? 'tracked deal';
+const dateStr = (rec.date instanceof Date ? rec.date : new Date(rec.date)).toLocaleDateString(
+  'en-US',
+  { year: 'numeric', month: 'short', day: 'numeric' },
+);
+---
+
+<article class="border-t border-rule py-4 first:border-t-0">
+  <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+    <div class="flex items-baseline gap-2">
+      <span class="font-mono text-sm font-semibold text-ink">{target}</span>
+      <span class="text-xs text-faint">{dateStr}</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <OutcomeBadge outcome={rec.outcome} />
+      <ReturnFigure ratio={ratio} class="text-sm" />
+    </div>
+  </div>
+
+  <p class="mt-1.5 text-sm leading-relaxed text-muted">{rec.thesis}</p>
+
+  <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-faint">
+    <span class="font-semibold uppercase tracking-wide">Sources:</span>
+    {
+      rec.sources.map((s, i) => (
+        <a href={s.url} rel="nofollow noopener" class="text-accent underline">
+          {s.publisher ?? s.title ?? `source ${i + 1}`}
+        </a>
+      ))
+    }
+  </div>
+</article>

@@ -18,6 +18,8 @@ pnpm-debug.log*
 # editors
 .vscode/
 .idea/
+# machine-local Claude Code settings (permissions etc.) — never commit
+.claude/settings.local.json
 # deploy
 .vercel/
 .netlify/

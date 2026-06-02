@@ -1,0 +1,67 @@
+---
+/**
+ * Discussion island. Per CLAUDE.md, ALL discussion is Giscus (GitHub
+ * Discussions) — never a custom comment backend. This component renders the
+ * Giscus embed only when the repo is configured via PUBLIC_GISCUS_* env vars;
+ * otherwise it shows an honest "discussion not yet wired" notice.
+ *
+ * The editorial/community boundary (rule 5) is drawn by the caller, above this.
+ * `term` maps each outlet to its own discussion thread; the page can switch it
+ * client-side via the `giscus:setTerm` event (see community page script).
+ */
+interface Props {
+  term: string;
+}
+const { term } = Astro.props;
+
+const repo = import.meta.env.PUBLIC_GISCUS_REPO; // e.g. "mitchellfgibson/crowdfunding_sucks"
+const repoId = import.meta.env.PUBLIC_GISCUS_REPO_ID;
+const category = import.meta.env.PUBLIC_GISCUS_CATEGORY;
+const categoryId = import.meta.env.PUBLIC_GISCUS_CATEGORY_ID;
+const configured = repo && repoId && category && categoryId;
+---
+
+{
+  configured ? (
+    <div
+      id="giscus-mount"
+      data-repo={repo}
+      data-repo-id={repoId}
+      data-category={category}
+      data-category-id={categoryId}
+      data-term={term}
+    >
+      <script
+        is:inline
+        src="https://giscus.app/client.js"
+        data-repo={repo}
+        data-repo-id={repoId}
+        data-category={category}
+        data-category-id={categoryId}
+        data-mapping="specific"
+        data-term={term}
+        data-strict="1"
+        data-reactions-enabled="1"
+        data-emit-metadata="0"
+        data-input-position="top"
+        data-theme="light"
+        data-lang="en"
+        crossorigin="anonymous"
+        async
+      />
+    </div>
+  ) : (
+    <div class="rounded-md border border-dashed border-rule bg-paper-raised p-5 text-sm text-muted">
+      <p class="font-medium text-ink">Discussion loads here (Giscus / GitHub Discussions).</p>
+      <p class="mt-1.5 leading-relaxed">
+        Community discussion is powered by GitHub Discussions and is not yet
+        wired up. Set the <code class="font-mono text-xs">PUBLIC_GISCUS_*</code>
+        environment variables to enable it. Until then, this stays a read-only
+        preview of the interface.
+      </p>
+      <p class="mt-1.5 text-xs text-faint">
+        Thread key: <code class="font-mono">{term}</code>
+      </p>
+    </div>
+  )
+}

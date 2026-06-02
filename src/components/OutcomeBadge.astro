@@ -1,0 +1,45 @@
+---
+/**
+ * Renders a recommendation/deal outcome as a small badge. Outcomes are the
+ * fixed verifiable-event enum (CLAUDE.md rule 3) — never free text. The "flag"
+ * red is reserved for the genuinely negative public-record states.
+ */
+interface Props {
+  outcome:
+    | 'active'
+    | 'acquired'
+    | 'delisted'
+    | 'dissolved'
+    | 'litigation_public_record'
+    | 'unknown';
+}
+const { outcome } = Astro.props;
+
+const LABEL: Record<Props['outcome'], string> = {
+  active: 'Active',
+  acquired: 'Acquired',
+  delisted: 'Delisted',
+  dissolved: 'Dissolved',
+  litigation_public_record: 'Litigation (public record)',
+  unknown: 'Unknown',
+};
+
+// neutral by default; flag-red only for the negative public-record events
+const TONE: Record<Props['outcome'], string> = {
+  active: 'border-rule text-muted',
+  acquired: 'border-[var(--color-gain)] text-[var(--color-gain)]',
+  delisted: 'border-[var(--color-flag)] text-[var(--color-flag)]',
+  dissolved: 'border-[var(--color-flag)] text-[var(--color-flag)]',
+  litigation_public_record: 'border-[var(--color-flag)] text-[var(--color-flag)]',
+  unknown: 'border-rule text-faint',
+};
+---
+
+<span
+  class:list={[
+    'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium',
+    TONE[outcome],
+  ]}
+>
+  {LABEL[outcome]}
+</span>

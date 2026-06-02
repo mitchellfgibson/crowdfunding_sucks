@@ -1,0 +1,319 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Container from '../components/Container.astro';
+import ReturnFigure from '../components/ReturnFigure.astro';
+import PerfStat from '../components/PerfStat.astro';
+import RecommendationRow from '../components/RecommendationRow.astro';
+import GiscusThread from '../components/GiscusThread.astro';
+import { summarize, byNewest, returnRatio, fmtPct, fmtRate } from '../lib/performance';
+
+/**
+ * COMMUNITY / PERFORMANCE DESK
+ *
+ * A Slack-style channel rail (outlets) + a therx-style forum/performance panel,
+ * oriented around investment performance: pick an outlet -> see its computed
+ * track record + recent recommendations -> discuss outcomes in its thread.
+ *
+ * Firewall notes:
+ *  - All numbers are computed at build time from sourced frontmatter
+ *    (src/lib/performance.ts). Nothing is authored here.
+ *  - The seeded outlets are CLEARLY-FICTIONAL illustrations (draft: true,
+ *    example.com sources). A loud banner says so. Real, sourced outlets render
+ *    through the exact same path with zero code changes.
+ *  - Discussion is Giscus only; the editorial/community boundary is explicit.
+ */
+
+const outlets = (await getCollection('gurus')).map((g) => ({
+  entry: g,
+  perf: summarize(g.data.recommendations),
+}));
+
+// Are we showing only illustrative (draft) data? Drives the banner.
+const allIllustrative = outlets.length > 0 && outlets.every((o) => o.entry.data.draft);
+
+// Leaderboard: rank by average computed return; outlets with no scored picks sink.
+const leaderboard = [...outlets].sort((a, b) => {
+  const av = a.perf.avgReturn ?? -Infinity;
+  const bv = b.perf.avgReturn ?? -Infinity;
+  return bv - av;
+});
+
+// Activity tape: every sourced recommendation across all outlets, newest first.
+const activity = outlets
+  .flatMap((o) =>
+    o.entry.data.recommendations
+      .filter((r) => Array.isArray(r.sources) && r.sources.length > 0)
+      .map((r) => ({ outlet: o.entry, rec: r })),
+  )
+  .sort((a, b) => {
+    const da = (a.rec.date instanceof Date ? a.rec.date : new Date(a.rec.date)).getTime();
+    const db = (b.rec.date instanceof Date ? b.rec.date : new Date(b.rec.date)).getTime();
+    return db - da;
+  })
+  .slice(0, 12);
+
+const displayName = (name: string) => name.replace(/\s*\(ILLUSTRATIVE SAMPLE\)\s*/i, '').trim();
+const slugOf = (o: (typeof outlets)[number]) => o.entry.data.slug ?? o.entry.id;
+---
+
+<BaseLayout
+  title="Community & Performance Desk"
+  description="Track outlet recommendation performance from sourced facts and discuss outcomes."
+>
+  <Container class="py-10">
+    <header class="max-w-3xl">
+      <p class="text-sm font-semibold uppercase tracking-wide text-accent">Community</p>
+      <h1 class="mt-2 text-3xl font-semibold text-ink sm:text-4xl">Performance Desk</h1>
+      <p class="mt-4 text-lg leading-relaxed text-muted">
+        Pick an outlet, see its recent recommendations and computed track record,
+        then discuss the outcomes. Every figure is arithmetic over cited facts —
+        nothing here is hand-authored.
+      </p>
+    </header>
+
+    {
+      allIllustrative && (
+        <div
+          role="note"
+          class="mt-6 rounded-md border border-[var(--color-notice)]/40 bg-[var(--color-notice)]/10 px-4 py-3 text-sm leading-relaxed text-[var(--color-notice)]"
+        >
+          <strong>Illustrative preview.</strong> The outlets below are fictional
+          samples (placeholder figures, <code class="font-mono">example.com</code>
+          sources) shown only to demonstrate the interface. No real person or
+          outlet is being scored. Real, sourced profiles render through this same
+          screen.
+        </div>
+      )
+    }
+
+    {/* ---- Activity tape (Slack #activity / therx recent-threads vibe) ---- */}
+    {
+      activity.length > 0 && (
+        <section class="mt-8">
+          <h2 class="text-xs font-semibold uppercase tracking-wide text-faint">Latest outcomes</h2>
+          <div class="mt-2 flex gap-2 overflow-x-auto pb-2">
+            {activity.map(({ outlet, rec }) => (
+              <a
+                href={`#outlet-${outlet.data.slug ?? outlet.id}`}
+                data-jump={outlet.data.slug ?? outlet.id}
+                class="shrink-0 rounded-md border border-rule bg-paper-raised px-3 py-2 text-xs no-underline transition-colors hover:bg-paper"
+              >
+                <span class="font-mono font-semibold text-ink">
+                  {rec.target.ticker ?? 'deal'}
+                </span>
+                <span class="ml-2"><ReturnFigure ratio={returnRatio(rec)} class="text-xs" /></span>
+                <span class="mt-1 block text-faint">{displayName(outlet.data.name)}</span>
+              </a>
+            ))}
+          </div>
+        </section>
+      )
+    }
+
+    {/* ---- Leaderboard ---- */}
+    <section class="mt-8">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-faint">
+        Outlet leaderboard · by avg. computed return
+      </h2>
+      <div class="mt-2 overflow-hidden rounded-lg border border-rule">
+        <table class="w-full text-sm">
+          <thead class="bg-paper-raised text-left text-xs uppercase tracking-wide text-faint">
+            <tr>
+              <th class="px-4 py-2 font-semibold">#</th>
+              <th class="px-4 py-2 font-semibold">Outlet</th>
+              <th class="px-4 py-2 text-right font-semibold">Avg return</th>
+              <th class="px-4 py-2 text-right font-semibold">Win rate</th>
+              <th class="px-4 py-2 text-right font-semibold">Scored</th>
+              <th class="px-4 py-2 text-right font-semibold">Resolved</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              leaderboard.map((o, i) => (
+                <tr class="border-t border-rule">
+                  <td class="px-4 py-2 font-mono text-faint">{i + 1}</td>
+                  <td class="px-4 py-2">
+                    <a
+                      href={`#outlet-${slugOf(o)}`}
+                      data-jump={slugOf(o)}
+                      class="font-medium text-ink no-underline hover:underline"
+                    >
+                      {displayName(o.entry.data.name)}
+                    </a>
+                  </td>
+                  <td class="px-4 py-2 text-right">
+                    <ReturnFigure ratio={o.perf.avgReturn} />
+                  </td>
+                  <td class="px-4 py-2 text-right font-mono tabular-nums text-muted">
+                    {fmtRate(o.perf.winRate)}
+                  </td>
+                  <td class="px-4 py-2 text-right font-mono tabular-nums text-muted">
+                    {o.perf.scored}
+                  </td>
+                  <td class="px-4 py-2 text-right font-mono tabular-nums text-muted">
+                    {o.perf.resolved}
+                  </td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    {/* ---- Slack shell: channel rail + outlet panels ---- */}
+    <section class="mt-10 grid gap-6 md:grid-cols-[220px_1fr]">
+      {/* channel rail */}
+      <aside class="md:sticky md:top-20 md:self-start">
+        <div class="rounded-lg border border-rule bg-paper-raised">
+          <p class="border-b border-rule px-3 py-2 text-xs font-semibold uppercase tracking-wide text-faint">
+            Outlets
+          </p>
+          <nav class="p-1.5" aria-label="Outlet channels">
+            {
+              outlets.map((o, i) => (
+                <button
+                  type="button"
+                  class="channel-btn flex w-full items-center gap-1.5 rounded-md px-2.5 py-1.5 text-left text-sm text-muted transition-colors hover:bg-paper"
+                  data-channel={slugOf(o)}
+                  aria-pressed={i === 0 ? 'true' : 'false'}
+                >
+                  <span class="text-faint">#</span>
+                  <span class="truncate">{displayName(o.entry.data.name)}</span>
+                </button>
+              ))
+            }
+          </nav>
+        </div>
+      </aside>
+
+      {/* outlet panels (one shown at a time) */}
+      <div>
+        {
+          outlets.map((o, i) => {
+            const slug = slugOf(o);
+            const p = o.perf;
+            return (
+              <section
+                id={`outlet-${slug}`}
+                class="outlet-panel"
+                data-panel={slug}
+                hidden={i !== 0}
+              >
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <h2 class="font-serif text-2xl text-ink">{displayName(o.entry.data.name)}</h2>
+                    <p class="mt-1 max-w-prose text-sm leading-relaxed text-muted">
+                      {o.entry.data.summary}
+                    </p>
+                  </div>
+                  {o.entry.data.draft && (
+                    <span class="shrink-0 rounded-full border border-[var(--color-notice)]/50 px-2 py-0.5 text-xs font-medium text-[var(--color-notice)]">
+                      Illustrative
+                    </span>
+                  )}
+                </div>
+
+                {/* performance stat strip */}
+                <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+                  <PerfStat
+                    label="Avg return"
+                    value={fmtPct(p.avgReturn)}
+                    tone={p.avgReturn === null ? 'neutral' : p.avgReturn >= 0 ? 'gain' : 'loss'}
+                  />
+                  <PerfStat label="Median" value={fmtPct(p.medianReturn)} />
+                  <PerfStat
+                    label="Best"
+                    value={fmtPct(p.bestReturn)}
+                    tone={p.bestReturn !== null && p.bestReturn >= 0 ? 'gain' : 'neutral'}
+                  />
+                  <PerfStat
+                    label="Worst"
+                    value={fmtPct(p.worstReturn)}
+                    tone={p.worstReturn !== null && p.worstReturn < 0 ? 'loss' : 'neutral'}
+                  />
+                  <PerfStat label="Win rate" value={fmtRate(p.winRate)} />
+                  <PerfStat label="Picks" value={`${p.scored}/${p.total}`} sub="scored / total" />
+                </div>
+
+                {/* recommendations — forum thread of dated, cited calls */}
+                <div class="mt-6">
+                  <h3 class="text-xs font-semibold uppercase tracking-wide text-faint">
+                    Recent recommendations
+                  </h3>
+                  <div class="mt-2 rounded-lg border border-rule bg-paper-raised px-4">
+                    {byNewest(o.entry.data.recommendations).map((rec) => (
+                      <RecommendationRow rec={rec} />
+                    ))}
+                  </div>
+                </div>
+
+                {/* editorial / community boundary (rule 5) */}
+                <div class="mt-8">
+                  <div class="flex items-center gap-3">
+                    <span class="h-px flex-1 bg-rule" />
+                    <span class="text-xs font-semibold uppercase tracking-wide text-faint">
+                      Below: community discussion — not editorial content
+                    </span>
+                    <span class="h-px flex-1 bg-rule" />
+                  </div>
+                  <div class="mt-4">
+                    <GiscusThread term={`outlet/${slug}`} />
+                  </div>
+                </div>
+              </section>
+            );
+          })
+        }
+
+        {
+          outlets.length === 0 && (
+            <p class="rounded-md border border-dashed border-rule p-6 text-sm text-muted">
+              No outlets yet. Add sourced profiles to the <code>gurus</code>
+              collection and they appear here automatically.
+            </p>
+          )
+        }
+      </div>
+    </section>
+  </Container>
+</BaseLayout>
+
+{/* Channel switching: show one outlet panel at a time + retheme Giscus per channel. */}
+<script>
+  const buttons = Array.from(
+    document.querySelectorAll<HTMLButtonElement>('.channel-btn'),
+  );
+  const panels = Array.from(
+    document.querySelectorAll<HTMLElement>('.outlet-panel'),
+  );
+
+  const activeClasses = ['bg-paper', 'text-ink', 'font-medium'];
+
+  function select(channel: string) {
+    panels.forEach((p) => {
+      p.hidden = p.dataset.panel !== channel;
+    });
+    buttons.forEach((b) => {
+      const on = b.dataset.channel === channel;
+      b.setAttribute('aria-pressed', on ? 'true' : 'false');
+      activeClasses.forEach((c) => b.classList.toggle(c, on));
+    });
+  }
+
+  buttons.forEach((b) =>
+    b.addEventListener('click', () => b.dataset.channel && select(b.dataset.channel)),
+  );
+
+  // Jump links (activity tape / leaderboard) also switch the channel.
+  document.querySelectorAll<HTMLElement>('[data-jump]').forEach((el) =>
+    el.addEventListener('click', () => {
+      const slug = el.dataset.jump;
+      if (slug) select(slug);
+    }),
+  );
+
+  // Initialize to the first channel.
+  if (buttons[0]?.dataset.channel) select(buttons[0].dataset.channel);
+</script>

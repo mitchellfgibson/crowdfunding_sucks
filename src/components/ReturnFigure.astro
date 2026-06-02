@@ -1,0 +1,26 @@
+---
+import { fmtPct } from '../lib/performance';
+
+/**
+ * A computed return figure, colored gain/loss. `ratio` is null when the
+ * recommendation lacks the sourced entry/current valuations needed to compute
+ * it — in which case we render a neutral em dash, never a guessed number.
+ */
+interface Props {
+  ratio: number | null;
+  digits?: number;
+  class?: string;
+}
+const { ratio, digits = 0, class: className = '' } = Astro.props;
+
+const tone =
+  ratio === null
+    ? 'text-faint'
+    : ratio > 0
+      ? 'text-[var(--color-gain)]'
+      : ratio < 0
+        ? 'text-[var(--color-loss)]'
+        : 'text-muted';
+---
+
+<span class:list={['font-mono tabular-nums', tone, className]}>{fmtPct(ratio, digits)}</span>

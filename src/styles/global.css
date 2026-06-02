@@ -18,6 +18,9 @@
   --color-accent: #1f5fae; /* links, sober editorial blue */
   --color-accent-ink: #16498a; /* accent on hover/active */
   --color-flag: #9a3b2e; /* reserved: defunct / litigation badges only */
+  --color-gain: #1f7a4d; /* positive computed return */
+  --color-loss: #b3402f; /* negative computed return */
+  --color-notice: #8a5a12; /* illustrative / sample-data notices */
 
   /* typography */
   --font-serif: "Iowan Old Style", "Charter", "Georgia", "Times New Roman", serif;
