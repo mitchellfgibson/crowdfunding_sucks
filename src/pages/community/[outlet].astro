@@ -29,9 +29,6 @@ const data = guru.data;
 const slug = data.slug ?? guru.id;
 const perf = summarize(data.recommendations);
 const posts = byNewest(data.recommendations);
-
-// Compact author-panel track label reused on every post in the thread.
-const trackLabel = `Avg ${fmtPct(perf.avgReturn)} · ${fmtRate(perf.winRate)} W · ${perf.total} calls`;
 ---
 
 <BaseLayout
@@ -103,13 +100,7 @@ const trackLabel = `Avg ${fmtPct(perf.avgReturn)} · ${fmtRate(perf.winRate)} W 
       </div>
       {
         posts.map((rec, i) => (
-          <ForumPost
-            rec={rec}
-            handle={data.name}
-            postNo={i + 1}
-            trackLabel={trackLabel}
-            since={perf.firstDate}
-          />
+          <ForumPost rec={rec} handle={data.name} postNo={i + 1} since={perf.firstDate} />
         ))
       }
       {

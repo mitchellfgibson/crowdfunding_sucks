@@ -17,11 +17,9 @@ interface Props {
   rec: Rec;
   handle: string; // e.g. "@CapTableChris"
   postNo: number; // 1-based position in the thread
-  /** Author-panel stats (computed once by the caller). */
-  trackLabel?: string; // e.g. "Avg +71% · 67% W"
   since?: Date | null;
 }
-const { rec, handle, postNo, trackLabel, since } = Astro.props;
+const { rec, handle, postNo, since } = Astro.props;
 
 const ratio = returnRatio(rec);
 const target = rec.target.ticker ?? 'tracked deal';
@@ -39,9 +37,6 @@ const usd = (n: number) =>
     <Avatar name={handle} size={44} />
     <div class="min-w-0">
       <p class="truncate font-semibold text-ink">{bareHandle(handle)}</p>
-      {trackLabel && (
-        <p class="mt-0.5 font-mono text-xs text-muted">{trackLabel}</p>
-      )}
       {since && (
         <p class="mt-0.5 text-xs text-faint">Posting since {monthYear(since)}</p>
       )}
