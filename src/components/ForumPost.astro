@@ -2,10 +2,9 @@
 import Avatar from './Avatar.astro';
 import OutcomeBadge from './OutcomeBadge.astro';
 import ReturnFigure from './ReturnFigure.astro';
-import GiscusThread from './GiscusThread.astro';
+import ChatLog from './ChatLog.astro';
 import { returnRatio } from '../lib/performance';
 import { bareHandle, monthYear } from '../lib/handle';
-import { dealTerm } from '../lib/giscus';
 import type { CollectionEntry } from 'astro:content';
 
 /**
@@ -14,9 +13,8 @@ import type { CollectionEntry } from 'astro:content';
  * dated recommendation. Per the firewall the citation is always shown and the
  * return is only the computed figure (em dash when not computable).
  *
- * Each post carries its own per-deal discussion thread (lazy Giscus toggle),
- * keyed by the profile slug + this deal — so people talk about each deal
- * individually, in theRX style, within the investor's profile.
+ * Each post carries its own per-deal discussion (an illustrative sample chat
+ * log, theRX style) within the investor's profile.
  */
 type Rec = CollectionEntry<'gurus'>['data']['recommendations'][number];
 interface Props {
@@ -28,7 +26,8 @@ interface Props {
 }
 const { rec, handle, postNo, slug, since } = Astro.props;
 
-const term = dealTerm(slug, rec.target.ticker, postNo);
+const ticker = rec.target.ticker ?? 'this call';
+const chatSeed = `${slug}/${rec.target.ticker ?? `call-${postNo}`}`;
 
 const ratio = returnRatio(rec);
 const target = rec.target.ticker ?? 'tracked deal';
@@ -85,9 +84,15 @@ const usd = (n: number) =>
       ))}
     </div>
 
-    {/* per-deal discussion (lazy Giscus thread, theRX style) */}
+    {/* per-deal discussion (illustrative sample chat, theRX style) */}
     <div class="mt-3 border-t border-rule pt-3">
-      <GiscusThread term={term} variant="toggle" label={`Discuss ${rec.target.ticker ?? 'this call'}`} />
+      <ChatLog
+        seed={chatSeed}
+        ticker={ticker}
+        outcome={rec.outcome}
+        ratio={ratio}
+        label={`Discuss ${ticker}`}
+      />
     </div>
   </div>
 </article>
