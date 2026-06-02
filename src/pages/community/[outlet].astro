@@ -1,0 +1,136 @@
+---
+import { getCollection } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Container from '../../components/Container.astro';
+import Avatar from '../../components/Avatar.astro';
+import ForumPost from '../../components/ForumPost.astro';
+import PerfStat from '../../components/PerfStat.astro';
+import GiscusThread from '../../components/GiscusThread.astro';
+import { withBase } from '../../lib/url';
+import { summarize, byNewest, fmtPct, fmtRate } from '../../lib/performance';
+import { bareHandle, monthYear } from '../../lib/handle';
+
+/**
+ * Forum THREAD view for a single tracked account: the dated, cited
+ * recommendations as classic two-column forum posts, then a discussion thread.
+ * One static page per account in the gurus collection.
+ */
+export const getStaticPaths = (async () => {
+  const gurus = await getCollection('gurus');
+  return gurus.map((g) => ({
+    params: { outlet: g.data.slug ?? g.id },
+    props: { guru: g },
+  }));
+}) satisfies GetStaticPaths;
+
+const { guru } = Astro.props;
+const data = guru.data;
+const slug = data.slug ?? guru.id;
+const perf = summarize(data.recommendations);
+const posts = byNewest(data.recommendations);
+
+// Compact author-panel track label reused on every post in the thread.
+const trackLabel = `Avg ${fmtPct(perf.avgReturn)} · ${fmtRate(perf.winRate)} W · ${perf.total} calls`;
+---
+
+<BaseLayout
+  title={`${bareHandle(data.name)} — Performance Board`}
+  description={`Sourced recommendation track record and discussion for ${bareHandle(data.name)}.`}
+>
+  <Container class="py-10">
+    {/* breadcrumb */}
+    <nav class="text-xs text-faint" aria-label="Breadcrumb">
+      <a href={withBase('/')} class="text-muted no-underline hover:underline">Home</a>
+      <span class="mx-1.5">›</span>
+      <a href={withBase('/community/')} class="text-muted no-underline hover:underline">Performance Board</a>
+      <span class="mx-1.5">›</span>
+      <span class="text-ink">{bareHandle(data.name)}</span>
+    </nav>
+
+    {/* thread header / account card */}
+    <header class="mt-3 border-b-2 border-ink pb-5">
+      <div class="flex items-start gap-4">
+        <Avatar name={data.name} size={56} />
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2">
+            <h1 class="font-serif text-2xl text-ink">{bareHandle(data.name)}</h1>
+            {data.draft && (
+              <span class="rounded-full border border-[var(--color-notice)]/50 px-2 py-0.5 text-xs font-medium text-[var(--color-notice)]">
+                Illustrative sample
+              </span>
+            )}
+          </div>
+          <p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted">{data.summary}</p>
+          <p class="mt-1.5 text-xs text-faint">
+            {perf.firstDate && <>Posting since {monthYear(perf.firstDate)} · </>}
+            {data.links?.[0] && (
+              <a href={data.links[0].url} rel="nofollow noopener" class="text-accent underline">
+                {data.links[0].label}
+              </a>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* track-record stat strip */}
+      <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <PerfStat
+          label="Avg return"
+          value={fmtPct(perf.avgReturn)}
+          tone={perf.avgReturn === null ? 'neutral' : perf.avgReturn >= 0 ? 'gain' : 'loss'}
+        />
+        <PerfStat label="Median" value={fmtPct(perf.medianReturn)} />
+        <PerfStat
+          label="Best"
+          value={fmtPct(perf.bestReturn)}
+          tone={perf.bestReturn !== null && perf.bestReturn >= 0 ? 'gain' : 'neutral'}
+        />
+        <PerfStat
+          label="Worst"
+          value={fmtPct(perf.worstReturn)}
+          tone={perf.worstReturn !== null && perf.worstReturn < 0 ? 'loss' : 'neutral'}
+        />
+        <PerfStat label="Win rate" value={fmtRate(perf.winRate)} />
+        <PerfStat label="Picks" value={`${perf.scored}/${perf.total}`} sub="scored / total" />
+      </div>
+    </header>
+
+    {/* the thread: one forum post per cited recommendation */}
+    <section class="mt-6 overflow-hidden rounded-lg border border-rule">
+      <div class="border-b border-rule bg-paper-raised px-4 py-2 text-xs font-semibold uppercase tracking-wide text-faint">
+        Recommendations · {posts.length} {posts.length === 1 ? 'call' : 'calls'}, newest first
+      </div>
+      {
+        posts.map((rec, i) => (
+          <ForumPost
+            rec={rec}
+            handle={data.name}
+            postNo={i + 1}
+            trackLabel={trackLabel}
+            since={perf.firstDate}
+          />
+        ))
+      }
+      {
+        posts.length === 0 && (
+          <p class="px-4 py-8 text-sm text-muted">No recommendations on file yet.</p>
+        )
+      }
+    </section>
+
+    {/* editorial / community boundary (rule 5) */}
+    <div class="mt-8">
+      <div class="flex items-center gap-3">
+        <span class="h-px flex-1 bg-rule"></span>
+        <span class="text-center text-xs font-semibold uppercase tracking-wide text-faint">
+          Below: community discussion — not editorial content
+        </span>
+        <span class="h-px flex-1 bg-rule"></span>
+      </div>
+      <div class="mt-4">
+        <GiscusThread term={`outlet/${slug}`} />
+      </div>
+    </div>
+  </Container>
+</BaseLayout>

@@ -54,6 +54,7 @@ export interface OutletPerformance {
   bestReturn: number | null;
   worstReturn: number | null;
   winRate: number | null; // share of scored picks with return > 0, or null
+  firstDate: Date | null; // earliest recommendation ("posting since")
   lastDate: Date | null; // most recent recommendation date
 }
 
@@ -71,10 +72,9 @@ export function summarize(recs: Recommendation[]): OutletPerformance {
     .map(returnRatio)
     .filter((r): r is number => r !== null);
 
-  const lastDate = recs.reduce<Date | null>((acc, r) => {
-    const d = r.date instanceof Date ? r.date : new Date(r.date);
-    return !acc || d > acc ? d : acc;
-  }, null);
+  const dates = recs.map((r) => (r.date instanceof Date ? r.date : new Date(r.date)));
+  const lastDate = dates.length ? new Date(Math.max(...dates.map((d) => d.getTime()))) : null;
+  const firstDate = dates.length ? new Date(Math.min(...dates.map((d) => d.getTime()))) : null;
 
   return {
     total: recs.length,
@@ -86,6 +86,7 @@ export function summarize(recs: Recommendation[]): OutletPerformance {
     bestReturn: ratios.length ? Math.max(...ratios) : null,
     worstReturn: ratios.length ? Math.min(...ratios) : null,
     winRate: ratios.length ? ratios.filter((r) => r > 0).length / ratios.length : null,
+    firstDate,
     lastDate,
   };
 }

@@ -1,0 +1,84 @@
+---
+import Avatar from './Avatar.astro';
+import OutcomeBadge from './OutcomeBadge.astro';
+import ReturnFigure from './ReturnFigure.astro';
+import { returnRatio } from '../lib/performance';
+import { bareHandle, monthYear } from '../lib/handle';
+import type { CollectionEntry } from 'astro:content';
+
+/**
+ * Classic forum post (theRX / vBulletin style): a left author panel and a right
+ * content panel. The "author" is the outlet account; the post is one cited,
+ * dated recommendation. Per the firewall the citation is always shown and the
+ * return is only the computed figure (em dash when not computable).
+ */
+type Rec = CollectionEntry<'gurus'>['data']['recommendations'][number];
+interface Props {
+  rec: Rec;
+  handle: string; // e.g. "@CapTableChris"
+  postNo: number; // 1-based position in the thread
+  /** Author-panel stats (computed once by the caller). */
+  trackLabel?: string; // e.g. "Avg +71% · 67% W"
+  since?: Date | null;
+}
+const { rec, handle, postNo, trackLabel, since } = Astro.props;
+
+const ratio = returnRatio(rec);
+const target = rec.target.ticker ?? 'tracked deal';
+const d = rec.date instanceof Date ? rec.date : new Date(rec.date);
+const dateStr = d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+const valued =
+  typeof rec.entryValuation === 'number' && typeof rec.currentValuation === 'number';
+const usd = (n: number) =>
+  n >= 1_000_000 ? `$${(n / 1_000_000).toFixed(1)}M` : `$${n.toLocaleString()}`;
+---
+
+<article id={`post-${postNo}`} class="grid grid-cols-1 border-t border-rule sm:grid-cols-[180px_1fr]">
+  {/* author panel */}
+  <div class="flex items-center gap-3 bg-paper-raised px-4 py-4 sm:flex-col sm:items-start sm:gap-2">
+    <Avatar name={handle} size={44} />
+    <div class="min-w-0">
+      <p class="truncate font-semibold text-ink">{bareHandle(handle)}</p>
+      {trackLabel && (
+        <p class="mt-0.5 font-mono text-xs text-muted">{trackLabel}</p>
+      )}
+      {since && (
+        <p class="mt-0.5 text-xs text-faint">Posting since {monthYear(since)}</p>
+      )}
+    </div>
+  </div>
+
+  {/* content panel */}
+  <div class="px-4 py-4">
+    <div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-xs text-faint">
+      <span>
+        <span class="font-medium text-muted">#{postNo}</span>
+        <span class="mx-1.5">·</span>
+        {dateStr}
+      </span>
+      <OutcomeBadge outcome={rec.outcome} />
+    </div>
+
+    <div class="mt-2 flex items-baseline gap-2">
+      <span class="font-mono text-base font-semibold text-ink">{target}</span>
+      <ReturnFigure ratio={ratio} class="text-sm" />
+    </div>
+
+    <p class="mt-1.5 leading-relaxed text-muted">{rec.thesis}</p>
+
+    {valued && (
+      <p class="mt-2 font-mono text-xs text-faint">
+        Entry {usd(rec.entryValuation!)} → Current {usd(rec.currentValuation!)} (post-money, per sources)
+      </p>
+    )}
+
+    <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-faint">
+      <span class="font-semibold uppercase tracking-wide">Sources:</span>
+      {rec.sources.map((s, i) => (
+        <a href={s.url} rel="nofollow noopener" class="text-accent underline">
+          {s.publisher ?? s.title ?? `source ${i + 1}`}
+        </a>
+      ))}
+    </div>
+  </div>
+</article>
