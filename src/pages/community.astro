@@ -99,88 +99,101 @@ const fmtDay = (d: Date | null) =>
       )
     }
 
-    {/* dismissible hint */}
-    {
-      outlets.length > 0 && (
-        <div
-          id="board-hint"
-          class="mt-6 flex items-start gap-3 rounded-xl border border-accent/30 bg-accent/5 px-4 py-3 text-sm text-ink"
-        >
-          <span aria-hidden="true" class="mt-0.5 text-accent">👆</span>
-          <p class="flex-1 leading-relaxed">
-            <strong class="font-semibold">Click into an account</strong> to open its
-            thread — every dated, sourced call and the discussion underneath.
-          </p>
-          <button
-            id="board-hint-close"
-            type="button"
-            aria-label="Dismiss"
-            class="-mr-1 -mt-1 rounded-md p-1 text-faint transition-colors hover:bg-paper hover:text-ink"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
-            </svg>
-          </button>
-        </div>
-      )
-    }
-
-    {/* board — independent account cards, ranked by sourced track record */}
-    <div class="mt-6 grid gap-3 sm:grid-cols-2">
+    {/* board + floating hint that hangs over the first card */}
+    <div class="relative mt-8">
+      {/* dismissible hint — floats, overlapping the top of the list */}
       {
-        ranked.map((o, i) => (
-          <a
-            href={withBase(`/community/${o.slug}/`)}
-            class="group flex flex-col rounded-xl border border-rule bg-paper-raised p-4 no-underline shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-md"
+        outlets.length > 0 && (
+          <div
+            id="board-hint"
+            class="absolute -top-4 left-4 right-4 z-20 flex items-center gap-3 rounded-full bg-accent px-4 py-2.5 text-sm text-white shadow-lg sm:left-6 sm:right-auto sm:max-w-md"
           >
-            {/* card header: rank + avatar + handle + sample tag */}
-            <div class="flex items-center gap-3">
-              <span class="font-mono text-xs text-faint">#{i + 1}</span>
-              <Avatar name={o.entry.data.name} size={40} />
-              <div class="min-w-0 flex-1">
-                <p class="truncate font-semibold text-ink group-hover:text-accent">
-                  {bareHandle(o.entry.data.name)}
-                </p>
-                <p class="truncate text-xs text-faint">{o.entry.data.summary.split('.')[0]}.</p>
-              </div>
-              {o.entry.data.draft && (
-                <span class="shrink-0 rounded-full border border-[var(--color-notice)]/50 px-2 py-0.5 text-[0.65rem] font-medium text-[var(--color-notice)]">
-                  sample
-                </span>
-              )}
-            </div>
-
-            {/* card stats */}
-            <div class="mt-4 grid grid-cols-4 gap-2 border-t border-rule pt-3 text-center">
-              <div>
-                <p class="text-[0.62rem] font-semibold uppercase tracking-wide text-faint">Avg</p>
-                <ReturnFigure ratio={o.perf.avgReturn} class="text-sm" />
-              </div>
-              <div>
-                <p class="text-[0.62rem] font-semibold uppercase tracking-wide text-faint">Win</p>
-                <p class="font-mono text-sm tabular-nums text-muted">{fmtRate(o.perf.winRate)}</p>
-              </div>
-              <div>
-                <p class="text-[0.62rem] font-semibold uppercase tracking-wide text-faint">Calls</p>
-                <p class="font-mono text-sm tabular-nums text-muted">{o.perf.total}</p>
-              </div>
-              <div>
-                <p class="text-[0.62rem] font-semibold uppercase tracking-wide text-faint">Last</p>
-                <p class="font-mono text-[0.7rem] tabular-nums text-faint">{fmtDay(o.perf.lastDate)}</p>
-              </div>
-            </div>
-          </a>
-        ))
-      }
-
-      {
-        outlets.length === 0 && (
-          <p class="rounded-xl border border-dashed border-rule px-4 py-8 text-sm text-muted sm:col-span-2">
-            No accounts yet. Add sourced profiles to the <code>gurus</code> collection
-            and they appear here automatically.
-          </p>
+            <span aria-hidden="true">👆</span>
+            <p class="flex-1 leading-snug">
+              <strong class="font-semibold">Click into an account</strong> to open its thread.
+            </p>
+            <button
+              id="board-hint-close"
+              type="button"
+              aria-label="Dismiss"
+              class="-mr-1 rounded-full p-1 text-white/80 transition-colors hover:bg-white/20 hover:text-white"
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+              </svg>
+            </button>
+          </div>
         )
       }
+
+      {/* list view — independent stacked cards, ranked by sourced track record */}
+      <div class="flex flex-col gap-3 pt-5">
+        {
+          ranked.map((o, i) => (
+            <a
+              href={withBase(`/community/${o.slug}/`)}
+              class="group flex items-center gap-4 overflow-hidden rounded-2xl border border-rule border-l-4 border-l-accent bg-paper-raised py-3 pl-4 pr-4 no-underline shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:bg-accent/5 hover:shadow-md sm:pl-5"
+            >
+              {/* rank chip */}
+              <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/10 font-mono text-xs font-semibold text-accent group-hover:bg-accent group-hover:text-white">
+                {i + 1}
+              </span>
+
+              {/* identity */}
+              <Avatar name={o.entry.data.name} size={42} />
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                  <p class="truncate font-semibold text-ink group-hover:text-accent">
+                    {bareHandle(o.entry.data.name)}
+                  </p>
+                  {o.entry.data.draft && (
+                    <span class="shrink-0 rounded-full border border-[var(--color-notice)]/50 px-1.5 py-0.5 text-[0.6rem] font-medium text-[var(--color-notice)]">
+                      sample
+                    </span>
+                  )}
+                </div>
+                <p class="truncate text-xs text-faint">{o.entry.data.summary.split('.')[0]}.</p>
+              </div>
+
+              {/* inline stats */}
+              <div class="hidden shrink-0 items-center gap-5 text-center sm:flex">
+                <div class="w-16">
+                  <p class="text-[0.6rem] font-semibold uppercase tracking-wide text-faint">Avg</p>
+                  <ReturnFigure ratio={o.perf.avgReturn} class="text-sm" />
+                </div>
+                <div class="w-12">
+                  <p class="text-[0.6rem] font-semibold uppercase tracking-wide text-faint">Win</p>
+                  <p class="font-mono text-sm tabular-nums text-muted">{fmtRate(o.perf.winRate)}</p>
+                </div>
+                <div class="w-10">
+                  <p class="text-[0.6rem] font-semibold uppercase tracking-wide text-faint">Calls</p>
+                  <p class="font-mono text-sm tabular-nums text-muted">{o.perf.total}</p>
+                </div>
+              </div>
+
+              {/* mobile: just the headline return */}
+              <div class="shrink-0 text-right sm:hidden">
+                <ReturnFigure ratio={o.perf.avgReturn} class="text-sm" />
+                <p class="text-[0.65rem] text-faint">{o.perf.total} calls</p>
+              </div>
+
+              {/* chevron */}
+              <span class="shrink-0 text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-accent" aria-hidden="true">
+                ›
+              </span>
+            </a>
+          ))
+        }
+
+        {
+          outlets.length === 0 && (
+            <p class="rounded-2xl border border-dashed border-rule px-4 py-8 text-sm text-muted">
+              No accounts yet. Add sourced profiles to the <code>gurus</code> collection
+              and they appear here automatically.
+            </p>
+          )
+        }
+      </div>
     </div>
 
     <p class="mt-4 text-xs text-faint">
