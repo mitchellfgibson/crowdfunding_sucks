@@ -1,51 +1,81 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Container from '../components/Container.astro';
 import GoogleSignIn from '../components/GoogleSignIn.astro';
 import { withBase } from '../lib/url';
+import { publishers } from '../data/publishers';
 
-// Lead-gen front door (BUILD_PLAN Phase 0/1 priority): newsletter capture first.
-const tracks = [
-  'Winners',
-  'Losers',
-  'Hot Deals',
-  'Cap Tables',
-  'Publisher Picks',
-  'Deal Structures',
+// Lead-gen front door. Stats are REAL counts of what's on this site (rule 1:
+// no fabricated/unsourced numbers) — they update as content is added.
+const portals = (await getCollection('portals')).filter((p) => !p.data.draft);
+const analystCount = publishers.reduce((n, p) => n + p.analysts.length, 0);
+
+const stats = [
+  { value: `${portals.length}`, label: 'Platforms tracked' },
+  { value: `${publishers.length}`, label: 'Publishers covered' },
+  { value: `${analystCount}`, label: 'Analysts followed' },
+  { value: 'Sourced', label: 'Every datum cited' },
 ];
 
-const following = [
-  'crowdfunding activity',
-  'public market opportunities',
-  'publisher picks',
-  'cap table breakdowns',
-  'weekly insights',
+const tracks = ['Winners', 'Losers', 'Hot Deals', 'Cap Tables', 'Publisher Picks', 'Deal Structures'];
+
+// Four pillars — what the platform does (factual about our own product).
+const pillars = [
+  {
+    title: 'Track the platforms',
+    body: 'Every major crowdfunding portal — Wefunder, StartEngine, Republic and more — with regulation type, asset focus, and operating status.',
+    href: withBase('/portals/'),
+    cta: 'Browse platforms',
+  },
+  {
+    title: 'Follow the publishers',
+    body: 'The newsletter writers and influencers shaping the crowdfunding ecosystem — know who is promoting what, and what they cover.',
+    href: withBase('/gurus/'),
+    cta: 'See publishers',
+  },
+  {
+    title: 'Join the discussion',
+    body: 'Investors talk through deals and outcomes in the open — insights and red flags surfaced before you commit capital.',
+    href: withBase('/community/'),
+    cta: 'Performance board',
+  },
+  {
+    title: 'Learn the mechanics',
+    body: 'Plain-English lessons on cap tables, dilution, evaluating a Reg CF/A raise, and reading a Form C.',
+    href: withBase('/lessons/'),
+    cta: 'Read the lessons',
+  },
 ];
 
-// Why crowdfunding fell short — framing adapted from crowdfundingsucks.com/about.
-const failures = [
-  'Misaligned incentives',
-  'Overvalued deals',
-  'Lack of transparency',
-  'No real accountability',
-  'No investor community',
+// Industry problems — qualitative framing (no fabricated precise stats),
+// adapted from crowdfundingsucks.com. Citation shown at the section.
+const problems = [
+  ['High failure rates', 'A large share of early-stage startups never return capital to investors.'],
+  ['Inflated valuations', 'Crowdfunding rounds often price well above comparable venture rounds.'],
+  ['Little liquidity', 'Most positions have no realistic path to an exit or resale.'],
+  ['No outcome tracking', 'Platforms rarely publish how their offerings actually performed.'],
+  ['First-time founders', 'Many raises are led by founders with no prior exit experience.'],
+  ['Pay-to-play promotion', 'Marketing spend, not merit, frequently drives which deals get attention.'],
 ];
 ---
 
 <BaseLayout title="CrowdfundingSucks">
+  {/* hero */}
   <section class="border-b border-rule">
     <Container class="py-20 text-center sm:py-28">
       <h1 class="mx-auto max-w-3xl text-3xl font-medium text-muted sm:text-4xl">
         Crowdfunding was supposed to level the playing field.
       </h1>
-      <p
-        class="mx-auto mt-4 max-w-3xl font-serif text-xl font-bold italic leading-tight tracking-tight text-ink sm:text-2xl"
-      >
+      <p class="mx-auto mt-4 max-w-3xl font-serif text-xl font-bold italic leading-tight tracking-tight text-ink sm:text-2xl">
         We think investors deserve better.
       </p>
+      <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted">
+        We track the top crowdfunding platforms, monitor the newsletter gurus,
+        and bring investors together — with sourced facts, not hype.
+      </p>
 
-      <p class="mt-12 text-sm font-semibold uppercase tracking-wide text-faint">Track</p>
-      <ul class="mx-auto mt-3 grid max-w-xl grid-cols-1 gap-x-6 gap-y-2 text-left sm:grid-cols-2">
+      <ul class="mx-auto mt-10 grid max-w-xl grid-cols-1 gap-x-6 gap-y-2 text-left sm:grid-cols-2">
         {
           tracks.map((t) => (
             <li class="flex items-center gap-2 text-lg text-ink">
@@ -62,76 +92,86 @@ const failures = [
     </Container>
   </section>
 
-  {/* why this exists — framing from crowdfundingsucks.com/about */}
+  {/* real stats bar */}
   <section class="border-b border-rule bg-paper-raised">
-    <Container class="py-16 sm:py-20">
-      <p class="max-w-2xl text-xl leading-relaxed text-muted">
-        Retail investors are rarely getting in on the ground floor — they’re
-        often entering on the <span class="font-medium text-ink">12th floor</span>.
-        Access doesn’t always mean opportunity.
-      </p>
-
-      <h2 class="mt-12 font-serif text-2xl text-ink sm:text-3xl">
-        Crowdfunding didn’t fail because of the idea.
-      </h2>
-      <p class="mt-2 text-muted">It failed because of:</p>
-      <ul class="mt-4 grid max-w-xl gap-2 sm:grid-cols-2">
+    <Container class="py-10">
+      <div class="grid grid-cols-2 gap-6 text-center sm:grid-cols-4">
         {
-          failures.map((f) => (
-            <li class="flex items-center gap-2 text-ink">
-              <span class="text-[var(--color-flag)]" aria-hidden="true">✕</span>
-              {f}
-            </li>
+          stats.map((s) => (
+            <div>
+              <p class="font-mono text-3xl font-semibold text-ink">{s.value}</p>
+              <p class="mt-1 text-xs font-semibold uppercase tracking-wide text-faint">{s.label}</p>
+            </div>
           ))
         }
-      </ul>
+      </div>
+    </Container>
+  </section>
 
-      <p class="mt-12 max-w-2xl font-serif text-2xl italic text-ink sm:text-3xl">
-        We’re not just exposing what’s broken. We’re building what should exist.
+  {/* four pillars */}
+  <Container class="py-16">
+    <h2 class="font-serif text-2xl text-ink sm:text-3xl">Your command center for crowdfunding intelligence</h2>
+    <p class="mt-2 max-w-2xl text-muted">Four ways the community keeps investors informed.</p>
+    <div class="mt-8 grid gap-3 sm:grid-cols-2">
+      {
+        pillars.map((p) => (
+          <a
+            href={p.href}
+            class="group flex flex-col rounded-xl border border-rule bg-paper-raised p-5 no-underline shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/5 hover:shadow-md"
+          >
+            <h3 class="font-serif text-xl text-ink group-hover:text-accent">{p.title}</h3>
+            <p class="mt-2 flex-1 text-sm leading-relaxed text-muted">{p.body}</p>
+            <span class="mt-4 text-sm font-medium text-ink group-hover:text-accent">{p.cta} &rarr;</span>
+          </a>
+        ))
+      }
+    </div>
+  </Container>
+
+  {/* the transparency problem */}
+  <section class="border-y border-rule bg-paper-raised">
+    <Container class="py-16">
+      <h2 class="font-serif text-2xl text-ink sm:text-3xl">The crowdfunding industry has a transparency problem</h2>
+      <p class="mt-2 max-w-2xl text-muted">
+        Billions have flowed through equity crowdfunding since Reg CF launched in
+        2016 — yet investors are largely left in the dark about outcomes.
       </p>
-      <p class="mt-4 max-w-2xl leading-relaxed text-muted">
-        A community where opportunities are evaluated collectively, transparency
-        is the standard, and experienced and everyday investors operate with
-        better alignment.
+      <div class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {
+          problems.map(([title, body]) => (
+            <div class="rounded-xl border border-rule bg-paper p-4">
+              <div class="flex items-center gap-2">
+                <span class="text-[var(--color-flag)]" aria-hidden="true">✕</span>
+                <h3 class="font-medium text-ink">{title}</h3>
+              </div>
+              <p class="mt-1.5 text-sm leading-relaxed text-muted">{body}</p>
+            </div>
+          ))
+        }
+      </div>
+      <p class="mt-6 max-w-2xl text-sm leading-relaxed text-faint">
+        Problem framing adapted from
+        <a href="https://crowdfundingsucks.com" rel="nofollow noopener" class="text-muted underline">crowdfundingsucks.com</a>.
+        We publish specific figures only where they can be tied to a source.
+        <a href={withBase('/about/')} class="text-muted underline">Read why this exists →</a>
       </p>
     </Container>
   </section>
 
-  <Container class="py-14">
-    <p class="text-sm font-medium text-muted">Join thousands of investors following:</p>
-    <ul class="mt-3 flex flex-wrap gap-x-2 gap-y-2 text-sm text-faint">
-      {
-        following.map((f, i) => (
-          <li class="flex items-center gap-2">
-            {i > 0 && <span class="text-rule" aria-hidden="true">•</span>}
-            <span>{f}</span>
-          </li>
-        ))
-      }
-    </ul>
-
-    <div class="mt-10 flex flex-wrap gap-3">
-      <a
-        href={withBase('/portals/')}
-        class="rounded-md border border-rule px-4 py-2 text-sm font-medium text-ink no-underline transition-colors hover:bg-paper-raised"
-      >
-        Browse 25 platforms
-      </a>
-      <a
-        href={withBase('/community/')}
-        class="rounded-md border border-rule px-4 py-2 text-sm font-medium text-ink no-underline transition-colors hover:bg-paper-raised"
-      >
-        Performance board
-      </a>
-      <a
-        href={withBase('/lessons/')}
-        class="rounded-md border border-rule px-4 py-2 text-sm font-medium text-ink no-underline transition-colors hover:bg-paper-raised"
-      >
-        Lessons
-      </a>
+  {/* closing CTA */}
+  <Container class="py-16">
+    <div class="rounded-2xl border border-rule bg-paper-raised p-8 text-center">
+      <h2 class="font-serif text-2xl text-ink sm:text-3xl">Be part of the investor community</h2>
+      <p class="mx-auto mt-2 max-w-xl text-muted">
+        An investor-first community changing how crowdfunding gets evaluated —
+        collectively, transparently, on the record.
+      </p>
+      <div class="mt-6 flex justify-center">
+        <GoogleSignIn label="Join with Google" />
+      </div>
     </div>
 
-    <p class="mt-10 max-w-2xl text-xs leading-relaxed text-faint">
+    <p class="mx-auto mt-10 max-w-2xl text-center text-xs leading-relaxed text-faint">
       Not investment advice. Track records are computed from publicly cited facts
       via a <a href={withBase('/methodology/')} class="text-muted underline">disclosed methodology</a>;
       a claim with no source does not render.

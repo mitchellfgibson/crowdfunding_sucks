@@ -11,11 +11,10 @@ interface Props {
 const { label = 'Join with Google' } = Astro.props;
 ---
 
-<div class="flex flex-col items-center">
+<div class="google-signin flex flex-col items-center">
   <button
     type="button"
-    id="google-signin"
-    class="inline-flex items-center gap-3 rounded-full border border-rule bg-white px-6 py-3 text-base font-medium text-[#3c4043] shadow-sm transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent/40"
+    class="google-signin-btn inline-flex items-center gap-3 rounded-full border border-rule bg-white px-6 py-3 text-base font-medium text-[#3c4043] shadow-sm transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-accent/40"
   >
     <svg width="20" height="20" viewBox="0 0 18 18" aria-hidden="true">
       <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92c1.7-1.57 2.68-3.88 2.68-6.62z"/>
@@ -25,13 +24,16 @@ const { label = 'Join with Google' } = Astro.props;
     </svg>
     {label}
   </button>
-  <p id="google-signin-note" class="mt-2 text-xs text-faint">No credit card.</p>
+  <p class="google-signin-note mt-2 text-xs text-faint">No credit card.</p>
 </div>
 
 <script>
-  const btn = document.getElementById('google-signin');
-  const note = document.getElementById('google-signin-note');
-  btn?.addEventListener('click', () => {
-    if (note) note.textContent = 'Sign-in is coming soon — this is a demo.';
+  // Bind every instance (the button can appear more than once per page).
+  document.querySelectorAll<HTMLElement>('.google-signin').forEach((root) => {
+    const btn = root.querySelector('.google-signin-btn');
+    const note = root.querySelector('.google-signin-note');
+    btn?.addEventListener('click', () => {
+      if (note) note.textContent = 'Sign-in is coming soon — this is a demo.';
+    });
   });
 </script>
