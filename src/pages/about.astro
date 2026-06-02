@@ -1,0 +1,102 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Container from '../components/Container.astro';
+import { withBase } from '../lib/url';
+
+/**
+ * About / mission + founder background. The biographical claims are the
+ * founder's own account, sourced from crowdfundingsucks.com/about and presented
+ * as such (attributed, cited) — not independently asserted by this site.
+ */
+const SOURCE = 'https://crowdfundingsucks.com/about';
+
+// Mission framing (from the about page).
+const failures = [
+  'Misaligned incentives',
+  'Overvalued deals',
+  'Lack of transparency',
+  'No real accountability',
+  'No investor community',
+];
+
+// Founder background, verbatim points attributed to the founder via the source.
+const milestones = [
+  'In capital markets since 2001 — starting with publicly traded companies, handling filings, investor communications, and capital raises.',
+  'Moved into helping companies raise money directly, then founded a company and took it public.',
+  'Completed a $20M raise with Roth Capital Partners at $12 per share.',
+  'That company went on to trade as high as $90 on NASDAQ and still trades $60+ over 15 years later; early investors got in at $0.25 ($0.75 after a 3-for-1 reverse split).',
+  'Has helped complete raises from $1M to $35M — most oversubscribed — with several leading to strong outcomes for investors, and some to disappointing ones.',
+];
+---
+
+<BaseLayout
+  title="About"
+  description="Why CrowdfundingSucks exists, and the background of the founder building it."
+>
+  <Container width="prose" class="py-12">
+    <p class="text-sm font-semibold uppercase tracking-wide text-accent">About</p>
+    <h1 class="mt-2 font-serif text-3xl text-ink sm:text-4xl">Built from inside the system</h1>
+
+    <p class="mt-6 text-lg leading-relaxed text-muted">
+      Retail investors are rarely getting in on the ground floor — they’re often
+      entering on the 12th floor. Access doesn’t always mean opportunity.
+    </p>
+
+    <h2 class="mt-12 font-serif text-2xl text-ink">Crowdfunding didn’t fail because of the idea.</h2>
+    <p class="mt-2 text-muted">It failed because of:</p>
+    <ul class="mt-4 grid gap-2 sm:grid-cols-2">
+      {
+        failures.map((f) => (
+          <li class="flex items-center gap-2 text-ink">
+            <span class="text-[var(--color-flag)]" aria-hidden="true">✕</span>
+            {f}
+          </li>
+        ))
+      }
+    </ul>
+    <p class="mt-6 font-serif text-xl italic text-ink">
+      We’re not just exposing what’s broken. We’re building what should exist.
+    </p>
+
+    {/* founder background */}
+    <h2 class="mt-14 border-t border-rule pt-10 font-serif text-2xl text-ink">
+      The founder, in their own words
+    </h2>
+    <p class="mt-3 leading-relaxed text-muted">
+      “I’ve seen the system from the inside. Where it works. Where it breaks. And
+      where investors consistently get put at a disadvantage.”
+    </p>
+
+    <ul class="mt-6 space-y-4">
+      {
+        milestones.map((m) => (
+          <li class="flex gap-3">
+            <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" aria-hidden="true" />
+            <span class="leading-relaxed text-ink">{m}</span>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="mt-10 rounded-lg border border-rule bg-paper-raised p-4 text-sm leading-relaxed text-muted">
+      The background above is the founder’s own account, as published on
+      <a href={SOURCE} rel="nofollow noopener" class="text-accent underline">crowdfundingsucks.com</a>.
+      Figures and outcomes are theirs as stated; nothing here is investment advice.
+    </p>
+
+    <div class="mt-8 flex flex-wrap gap-3">
+      <a
+        href={withBase('/portals/')}
+        class="rounded-md border border-rule px-4 py-2 text-sm font-medium text-ink no-underline transition-colors hover:bg-paper-raised"
+      >
+        Browse platforms
+      </a>
+      <a
+        href={withBase('/gurus/')}
+        class="rounded-md border border-rule px-4 py-2 text-sm font-medium text-ink no-underline transition-colors hover:bg-paper-raised"
+      >
+        Publishers &amp; gurus
+      </a>
+    </div>
+  </Container>
+</BaseLayout>
