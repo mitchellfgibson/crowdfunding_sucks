@@ -2,7 +2,8 @@
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Container from '../components/Container.astro';
 import Avatar from '../components/Avatar.astro';
-import { publishers, PUBLISHERS_INTRO, PUBLISHERS_SOURCE } from '../data/publishers';
+import { withBase } from '../lib/url';
+import { publishers, publisherSlug, PUBLISHERS_INTRO, PUBLISHERS_SOURCE } from '../data/publishers';
 
 /**
  * Publisher / analyst directory, sourced from crowdfundingsucks.com/gurus.
@@ -41,11 +42,14 @@ const totalAnalysts = publishers.reduce((n, p) => n + p.analysts.length, 0);
     <div class="mt-8 space-y-4">
       {
         publishers.map((pub) => (
-          <section class="rounded-xl border border-rule bg-paper-raised p-5">
+          <a
+            href={withBase(`/gurus/${publisherSlug(pub.name)}/`)}
+            class="group block rounded-xl border border-rule bg-paper-raised p-5 no-underline shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/5 hover:shadow-md"
+          >
             <div class="flex items-start gap-3">
               <Avatar name={pub.name} size={44} />
               <div class="min-w-0">
-                <h2 class="font-serif text-xl text-ink">{pub.name}</h2>
+                <h2 class="font-serif text-xl text-ink group-hover:text-accent">{pub.name}</h2>
                 <p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted">{pub.description}</p>
               </div>
               <span class="ml-auto shrink-0 rounded-full border border-rule px-2 py-0.5 text-xs font-medium text-faint">
@@ -64,7 +68,11 @@ const totalAnalysts = publishers.reduce((n, p) => n + p.analysts.length, 0);
                 </li>
               ))}
             </ul>
-          </section>
+
+            <p class="mt-4 text-sm font-medium text-ink group-hover:text-accent">
+              View &amp; discuss {pub.name} &rarr;
+            </p>
+          </a>
         ))
       }
     </div>

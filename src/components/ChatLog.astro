@@ -1,26 +1,33 @@
 ---
 import Avatar from './Avatar.astro';
-import { sampleChat } from '../lib/sampleChat';
+import { sampleChat, type ChatMessage } from '../lib/sampleChat';
 
 /**
- * Illustrative sample chat log for a deal/profile. Renders a deterministic,
- * FICTIONAL conversation so the community interface can be previewed without
- * GitHub accounts or a real backend. Clearly labeled as sample; the composer is
- * disabled. Lives strictly in the "community discussion — not editorial" zone.
+ * Illustrative sample chat log. Renders a deterministic, FICTIONAL conversation
+ * so the community interface can be previewed without accounts or a real
+ * backend. Clearly labeled as sample; the composer is disabled. Lives strictly
+ * in the "community discussion — not editorial" zone.
  *
- * Collapsible via native <details> (no JS): a "💬 Discuss" summary toggles the
- * thread, so a profile page can hold many per-deal chats cheaply.
+ * Two ways to supply content:
+ *  - pass `messages` directly (any pre-generated thread), or
+ *  - pass deal context (`ticker`/`outcome`/`ratio`) and it builds one via
+ *    sampleChat(seed, ...).
+ *
+ * Collapsible via native <details> (no JS).
  */
 interface Props {
   seed: string; // stable key -> stable conversation
-  ticker: string;
-  outcome: string;
-  ratio: number | null;
+  messages?: ChatMessage[]; // pre-built thread (overrides deal context)
+  ticker?: string;
+  outcome?: string;
+  ratio?: number | null;
   label?: string;
   open?: boolean;
 }
-const { seed, ticker, outcome, ratio, label = 'Discuss', open = false } = Astro.props;
-const messages = sampleChat(seed, { ticker, outcome, ratio });
+const { seed, messages: provided, ticker, outcome, ratio = null, label = 'Discuss', open = false } =
+  Astro.props;
+const messages =
+  provided ?? sampleChat(seed, { ticker: ticker ?? 'this', outcome: outcome ?? 'unknown', ratio });
 ---
 
 <details class="group" open={open}>

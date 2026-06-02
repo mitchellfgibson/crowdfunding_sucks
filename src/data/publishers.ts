@@ -18,6 +18,15 @@ export interface Publisher {
   analysts: Analyst[];
 }
 
+/** URL-safe slug for a publisher name. */
+export function publisherSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
 export const PUBLISHERS_SOURCE = {
   title: 'Financial newsletter gurus directory',
   publisher: 'crowdfundingsucks.com',

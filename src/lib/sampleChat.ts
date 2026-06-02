@@ -163,3 +163,69 @@ export function sampleChat(seed: string, ctx: DealContext): ChatMessage[] {
 
   return msgs;
 }
+
+// --- Publisher / newsletter discussion bank ------------------------------
+
+const PUB_OPENERS = [
+  'anyone actually subscribe to {P}? wondering if it’s worth it',
+  'what’s the consensus on {P} these days',
+  'been getting {P} promos nonstop, are the picks any good?',
+  'thinking about {P} — talk me out of it',
+  'long-time {P} reader here, curious what others think',
+];
+
+const PUB_BODY = [
+  'the upsell funnel is relentless, the “lifetime” tier is basically the whole product',
+  'some of their crypto calls were early, I’ll give them that',
+  'mostly macro fear-mongering wrapped around a few real ideas imo',
+  'their disclaimers are longer than the actual thesis lol',
+  'I track every pick in a spreadsheet — results are… mixed',
+  'the teaser copywriting is elite, the returns less so',
+  'a couple analysts are solid, the rest is filler',
+  'they reuse the same “next big thing” angle every cycle',
+  'to be fair the educational content is decent for beginners',
+  'renewal pricing jumped on me, watch the auto-renew',
+  'half the “private deals” are just Reg A offerings anyone can access',
+  'I’d rather read the Form C myself than pay for the summary',
+];
+
+const PUB_CLOSERS = [
+  'tl;dr: read it for ideas, do your own DD on every pick',
+  'net-net I cancelled but kept the free list',
+  'jury’s still out for me, watching the next few calls',
+  'verdict: fine for entertainment, not a strategy',
+  'would love to see their picks tracked here over time',
+];
+
+/**
+ * Deterministic illustrative discussion for a publisher/guru page. Same
+ * skeptical-community flavor as the deal threads, but about a newsletter rather
+ * than a single deal. Opinion/banter only — asserts no figures as fact. {P} is
+ * the publisher name.
+ */
+export function publisherChat(seed: string, publisher: string): ChatMessage[] {
+  const rng = seeded(seed);
+  const fill = (s: string) => s.replace(/\{P\}/g, publisher);
+  const n = 6 + Math.floor(rng() * 5); // 6..10
+  const used = new Set<string>();
+  const author = () => {
+    let a = pick(rng, PERSONAS);
+    let g = 0;
+    while (used.has(a) && g++ < 5) a = pick(rng, PERSONAS);
+    used.add(a);
+    return a;
+  };
+  const agos = [...AGOS];
+
+  const msgs: ChatMessage[] = [];
+  msgs.push({ author: author(), body: fill(pick(rng, PUB_OPENERS)), ago: agos.shift()! });
+  for (let i = 1; i < n - 1; i++) {
+    msgs.push({ author: author(), body: fill(pick(rng, PUB_BODY)), ago: agos.shift() ?? '1h' });
+  }
+  msgs.push({ author: author(), body: fill(pick(rng, PUB_CLOSERS)), ago: agos.shift() ?? 'just now' });
+
+  msgs.forEach((m) => {
+    if (rng() < 0.35) m.reactions = [{ emoji: pick(rng, ['👍', '😂', '🤔']), n: 1 + Math.floor(rng() * 5) }];
+  });
+  return msgs;
+}
