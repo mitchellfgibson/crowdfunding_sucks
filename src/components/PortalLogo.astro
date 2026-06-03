@@ -1,0 +1,50 @@
+---
+import { monogram, avatarColor } from '../lib/handle';
+
+/**
+ * A platform's logo, loaded at runtime from its own domain favicon (we already
+ * store each portal's real URL in frontmatter). Nothing copyrighted is stored
+ * in the repo — the icon is fetched live (nominative use). If the favicon fails
+ * to load, an `onerror` handler removes the <img>, revealing a colored letter
+ * monogram underneath as the fallback.
+ */
+interface Props {
+  name: string;
+  url: string;
+  size?: number;
+  class?: string;
+}
+const { name, url, size = 40, class: className = '' } = Astro.props;
+
+let host = '';
+try {
+  host = new URL(url).host.replace(/^www\./, '');
+} catch {
+  host = '';
+}
+// DuckDuckGo's icon service is reliable and privacy-friendly.
+const favicon = host ? `https://icons.duckduckgo.com/ip3/${host}.ico` : '';
+const bg = avatarColor(name);
+---
+
+<span
+  class:list={['relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md', className]}
+  style={`width:${size}px;height:${size}px;background:${bg}`}
+>
+  <span class="font-semibold text-white" style={`font-size:${Math.round(size * 0.4)}px`} aria-hidden="true">
+    {monogram(name)}
+  </span>
+  {
+    favicon && (
+      <img
+        src={favicon}
+        alt={`${name} logo`}
+        width={size}
+        height={size}
+        loading="lazy"
+        class="absolute inset-0 h-full w-full bg-white object-contain p-1"
+        onerror="this.remove()"
+      />
+    )
+  }
+</span>
