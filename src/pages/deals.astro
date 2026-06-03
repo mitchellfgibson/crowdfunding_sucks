@@ -1,9 +1,155 @@
 ---
-import Placeholder from '../components/Placeholder.astro';
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Container from '../components/Container.astro';
+import Avatar from '../components/Avatar.astro';
+import ParticipateButton from '../components/ParticipateButton.astro';
+import { withBase } from '../lib/url';
+
+/**
+ * Deals directory. Currently seeded with CLEARLY-FICTIONAL sample raises
+ * (draft:true, example.com sources) to demonstrate the interface — real deals
+ * render through the same path. The "Participate" button is a demo: there is no
+ * investment flow and these are not real offerings (rule 1 / not advice).
+ */
+const deals = (await getCollection('deals')).sort(
+  (a, b) => b.data.date.getTime() - a.data.date.getTime(),
+);
+const allIllustrative = deals.length > 0 && deals.every((d) => d.data.draft);
+
+const usd = (n?: number) =>
+  typeof n === 'number'
+    ? n >= 1_000_000
+      ? `$${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`
+      : `$${n.toLocaleString()}`
+    : '—';
+
+const pct = (raised?: number, target?: number) =>
+  typeof raised === 'number' && typeof target === 'number' && target > 0
+    ? Math.min(100, Math.round((raised / target) * 100))
+    : null;
 ---
 
-<Placeholder
-  title="Deals"
-  phase="Coming in Phase 3"
-  blurb="Individual campaigns and issuers, cross-linked to the portals that hosted them and the people who promoted them. Built last, on top of the accountability graph."
-/>
+<BaseLayout
+  title="Open Deals"
+  description="Budding startup raises tracked on the platform — sector, valuation, and progress."
+>
+  <Container class="py-10">
+    <header class="max-w-3xl">
+      <p class="text-sm font-semibold uppercase tracking-wide text-accent">Directory</p>
+      <h1 class="mt-2 text-3xl font-semibold text-ink sm:text-4xl">Open Deals</h1>
+      <p class="mt-4 text-lg leading-relaxed text-muted">
+        Budding startups raising capital across the platforms we track — with the
+        hosting portal, valuation, and how far along each raise is.
+      </p>
+    </header>
+
+    {
+      allIllustrative && (
+        <div
+          role="note"
+          class="mt-6 rounded-md border border-[var(--color-notice)]/40 bg-[var(--color-notice)]/10 px-4 py-3 text-sm leading-relaxed text-[var(--color-notice)]"
+        >
+          <strong>Illustrative preview.</strong> These are fictional sample
+          companies (placeholder figures, <code class="font-mono">example.com</code>
+          sources) shown to demonstrate the deals interface. None is a real
+          offering, and “Participate” is a demo — nothing here is an offer to sell
+          or a solicitation to buy any security.
+        </div>
+      )
+    }
+
+    <div class="mt-8 grid gap-4 sm:grid-cols-2">
+      {
+        deals.map((deal) => {
+          const d = deal.data;
+          const p = pct(d.raisedToDate, d.raiseAmount);
+          const funded = p !== null && p >= 100;
+          return (
+            <article class="flex flex-col rounded-xl border border-rule bg-paper-raised p-5 shadow-sm">
+              <div class="flex items-start gap-3">
+                <Avatar name={d.name} size={44} />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-2">
+                    <h2 class="truncate font-serif text-xl text-ink">{d.name}</h2>
+                    {d.draft && (
+                      <span class="shrink-0 rounded-full border border-[var(--color-notice)]/50 px-1.5 py-0.5 text-[0.6rem] font-medium text-[var(--color-notice)]">
+                        sample
+                      </span>
+                    )}
+                  </div>
+                  {d.sector && <p class="text-xs text-faint">{d.sector}</p>}
+                </div>
+              </div>
+
+              <p class="mt-3 flex-1 text-sm leading-relaxed text-muted">{d.summary}</p>
+
+              {/* facts */}
+              <dl class="mt-4 grid grid-cols-3 gap-2 text-center">
+                <div class="rounded-md border border-rule bg-paper px-2 py-1.5">
+                  <dt class="text-[0.6rem] font-semibold uppercase tracking-wide text-faint">Valuation</dt>
+                  <dd class="font-mono text-sm text-ink">{usd(d.valuation)}</dd>
+                </div>
+                <div class="rounded-md border border-rule bg-paper px-2 py-1.5">
+                  <dt class="text-[0.6rem] font-semibold uppercase tracking-wide text-faint">Target</dt>
+                  <dd class="font-mono text-sm text-ink">{usd(d.raiseAmount)}</dd>
+                </div>
+                <div class="rounded-md border border-rule bg-paper px-2 py-1.5">
+                  <dt class="text-[0.6rem] font-semibold uppercase tracking-wide text-faint">Min</dt>
+                  <dd class="font-mono text-sm text-ink">{usd(d.minInvestment)}</dd>
+                </div>
+              </dl>
+
+              {/* raise progress */}
+              {p !== null && (
+                <div class="mt-4">
+                  <div class="flex items-center justify-between text-xs">
+                    <span class="font-medium text-ink">{usd(d.raisedToDate)} raised</span>
+                    <span class={funded ? 'font-semibold text-[var(--color-gain)]' : 'text-muted'}>
+                      {funded ? 'Fully funded' : `${p}%`}
+                    </span>
+                  </div>
+                  <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-rule">
+                    <div
+                      class="h-full rounded-full"
+                      style={`width:${p}%; background:${funded ? 'var(--color-gain)' : 'var(--color-accent)'}`}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* actions */}
+              <div class="mt-5 flex items-center justify-between gap-3">
+                {funded ? (
+                  <span class="text-sm font-medium text-faint">Round closed</span>
+                ) : (
+                  <ParticipateButton deal={d.name} min={d.minInvestment ?? null} />
+                )}
+                <a
+                  href={withBase(`/deals/${d.slug ?? deal.id}/`)}
+                  class="shrink-0 text-sm font-medium text-accent no-underline hover:underline"
+                >
+                  Details &rarr;
+                </a>
+              </div>
+            </article>
+          );
+        })
+      }
+
+      {
+        deals.length === 0 && (
+          <p class="rounded-xl border border-dashed border-rule px-4 py-8 text-sm text-muted sm:col-span-2">
+            No open deals yet.
+          </p>
+        )
+      }
+    </div>
+
+    <p class="mt-12 border-t border-rule pt-4 text-xs leading-relaxed text-faint">
+      Not investment advice and not an offer to sell or a solicitation to buy any
+      security. Sample deals are fictional and clearly marked; real raises happen
+      only on the hosting portal under its own regulation.
+    </p>
+  </Container>
+</BaseLayout>

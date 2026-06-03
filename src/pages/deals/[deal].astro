@@ -1,0 +1,136 @@
+---
+import { getCollection, getEntry, render } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Container from '../../components/Container.astro';
+import Avatar from '../../components/Avatar.astro';
+import ParticipateButton from '../../components/ParticipateButton.astro';
+import { withBase } from '../../lib/url';
+
+export const getStaticPaths = (async () => {
+  const deals = await getCollection('deals');
+  return deals.map((d) => ({ params: { deal: d.data.slug ?? d.id }, props: { deal: d } }));
+}) satisfies GetStaticPaths;
+
+const { deal } = Astro.props;
+const d = deal.data;
+const { Content } = await render(deal);
+
+const portal = d.portal ? await getEntry(d.portal) : null;
+
+const usd = (n?: number) =>
+  typeof n === 'number'
+    ? n >= 1_000_000
+      ? `$${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`
+      : `$${n.toLocaleString()}`
+    : '—';
+const p =
+  typeof d.raisedToDate === 'number' && typeof d.raiseAmount === 'number' && d.raiseAmount > 0
+    ? Math.min(100, Math.round((d.raisedToDate / d.raiseAmount) * 100))
+    : null;
+const funded = p !== null && p >= 100;
+---
+
+<BaseLayout title={`${d.name} — Open deal`} description={d.summary}>
+  <Container width="prose" class="py-10">
+    <nav class="text-xs text-faint" aria-label="Breadcrumb">
+      <a href={withBase('/')} class="text-muted no-underline hover:underline">Home</a>
+      <span class="mx-1.5">›</span>
+      <a href={withBase('/deals/')} class="text-muted no-underline hover:underline">Deals</a>
+      <span class="mx-1.5">›</span>
+      <span class="text-ink">{d.name}</span>
+    </nav>
+
+    <header class="mt-3 flex items-start gap-4 border-b-2 border-ink pb-5">
+      <Avatar name={d.name} size={56} />
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2">
+          <h1 class="font-serif text-3xl text-ink">{d.name}</h1>
+          {d.draft && (
+            <span class="rounded-full border border-[var(--color-notice)]/50 px-2 py-0.5 text-xs font-medium text-[var(--color-notice)]">
+              Illustrative sample
+            </span>
+          )}
+        </div>
+        <p class="mt-1 text-sm text-muted">{d.issuer}{d.sector && <span class="text-faint"> · {d.sector}</span>}</p>
+      </div>
+    </header>
+
+    {/* facts */}
+    <dl class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      {[
+        ['Valuation', usd(d.valuation)],
+        ['Raise target', usd(d.raiseAmount)],
+        ['Min invest', usd(d.minInvestment)],
+        ['Security', d.security ? d.security.replace('_', ' ') : '—'],
+      ].map(([k, v]) => (
+        <div class="rounded-lg border border-rule bg-paper-raised p-3">
+          <dt class="text-[0.62rem] font-semibold uppercase tracking-wide text-faint">{k}</dt>
+          <dd class="mt-0.5 font-mono text-ink">{v}</dd>
+        </div>
+      ))}
+    </dl>
+
+    {/* progress */}
+    {p !== null && (
+      <div class="mt-5">
+        <div class="flex items-center justify-between text-sm">
+          <span class="font-medium text-ink">{usd(d.raisedToDate)} raised of {usd(d.raiseAmount)}</span>
+          <span class={funded ? 'font-semibold text-[var(--color-gain)]' : 'text-muted'}>
+            {funded ? 'Fully funded' : `${p}%`}
+          </span>
+        </div>
+        <div class="mt-1.5 h-2.5 overflow-hidden rounded-full bg-rule">
+          <div class="h-full rounded-full" style={`width:${p}%; background:${funded ? 'var(--color-gain)' : 'var(--color-accent)'}`} />
+        </div>
+      </div>
+    )}
+
+    {/* pitch (MDX body) */}
+    <div class="prose-sm mt-8 leading-relaxed text-ink [&_blockquote]:mt-4 [&_blockquote]:border-l-2 [&_blockquote]:border-[var(--color-notice)]/50 [&_blockquote]:pl-3 [&_blockquote]:text-sm [&_blockquote]:text-[var(--color-notice)] [&_p]:mt-3">
+      <Content />
+    </div>
+
+    {/* participate */}
+    <div class="mt-8 rounded-xl border border-rule bg-paper-raised p-5">
+      {
+        funded ? (
+          <p class="text-sm font-medium text-faint">This round is closed.</p>
+        ) : (
+          <ParticipateButton deal={d.name} min={d.minInvestment ?? null} />
+        )
+      }
+      {
+        portal && (
+          <p class="mt-3 text-xs text-faint">
+            Hosted on
+            <a href={withBase(`/portals/${portal.data.slug ?? portal.id}/`)} class="text-accent underline">
+              {portal.data.name}
+            </a>. Real raises happen on the portal under its own regulation.
+          </p>
+        )
+      }
+    </div>
+
+    {/* sources */}
+    <section class="mt-8">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-faint">Sources</h2>
+      <ul class="mt-2 space-y-1.5 text-sm">
+        {
+          d.sources.map((s) => (
+            <li>
+              <a href={s.url} rel="nofollow noopener" class="text-accent underline">
+                {s.title ?? s.publisher ?? s.url}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <p class="mt-10 border-t border-rule pt-4 text-xs leading-relaxed text-faint">
+      Not investment advice and not an offer to sell or a solicitation to buy any
+      security. <a href={withBase('/deals/')} class="text-muted underline">← All deals</a>
+    </p>
+  </Container>
+</BaseLayout>

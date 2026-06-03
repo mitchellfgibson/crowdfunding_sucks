@@ -1,0 +1,37 @@
+---
+/**
+ * "Participate" button — DEMO ONLY. There is no investment flow, no account
+ * system, and these are fictional sample deals. Clicking shows a clear notice
+ * rather than starting anything. Investing in real securities would route to
+ * the hosting portal under its regulation — never handled on this site.
+ */
+interface Props {
+  deal: string; // label/identifier for the notice
+  min?: number | null;
+}
+const { deal, min = null } = Astro.props;
+const minLabel = typeof min === 'number' ? `$${min.toLocaleString()} min` : null;
+---
+
+<div class="participate" data-deal={deal}>
+  <button
+    type="button"
+    class="participate-btn inline-flex items-center justify-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+  >
+    Participate
+    {minLabel && <span class="font-normal text-white/80">· {minLabel}</span>}
+  </button>
+  <p class="participate-note mt-2 text-xs text-faint">Demo — sample deal, not a real offering.</p>
+</div>
+
+<script>
+  document.querySelectorAll<HTMLElement>('.participate').forEach((root) => {
+    const btn = root.querySelector('.participate-btn');
+    const note = root.querySelector('.participate-note');
+    btn?.addEventListener('click', () => {
+      if (note)
+        note.textContent =
+          'This is an illustrative sample, not a real offering. Investing isn’t available — coming soon.';
+    });
+  });
+</script>

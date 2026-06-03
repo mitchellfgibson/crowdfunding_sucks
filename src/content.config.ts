@@ -132,9 +132,12 @@ const deals = defineCollection({
     ...entityBase,
     issuer: z.string(),
     portal: reference('portals').optional(),
-    raiseAmount: z.number().nonnegative().optional(),
+    raiseAmount: z.number().nonnegative().optional(), // target for an open raise
+    raisedToDate: z.number().nonnegative().optional(), // committed so far (open raises)
+    minInvestment: z.number().nonnegative().optional(),
     valuation: z.number().nonnegative().optional(),
     currentValuation: z.number().nonnegative().optional(),
+    sector: z.string().optional(), // short label, e.g. "Climate hardware"
     date: z.coerce.date(),
     security: security.optional(),
     outcome: outcome.default('unknown'),
