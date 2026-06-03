@@ -1,0 +1,25 @@
+---
+import { marketShare } from '../data/industry';
+
+/** Platform market-share as labeled horizontal bars (CSS only). */
+const max = Math.max(...marketShare.map((m) => m.pct));
+---
+
+<div class="space-y-2.5">
+  {
+    marketShare.map((m) => (
+      <div>
+        <div class="flex items-baseline justify-between text-sm">
+          <span class="font-medium text-ink">{m.name}</span>
+          <span class="font-mono text-muted">{m.pct}%</span>
+        </div>
+        <div class="mt-1 h-2.5 overflow-hidden rounded-full bg-rule">
+          <div
+            class="h-full rounded-full bg-accent"
+            style={`width:${(m.pct / max) * 100}%`}
+          />
+        </div>
+      </div>
+    ))
+  }
+</div>

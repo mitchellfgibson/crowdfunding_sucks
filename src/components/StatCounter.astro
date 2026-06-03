@@ -1,0 +1,69 @@
+---
+import type { Stat } from '../data/industry';
+
+/**
+ * A single big animated stat. Counts up from 0 to `value` when scrolled into
+ * view (respects prefers-reduced-motion). Pure presentation of a supplied,
+ * attributed number — no data invented here.
+ */
+interface Props {
+  stat: Stat;
+  size?: 'lg' | 'md';
+}
+const { stat, size = 'lg' } = Astro.props;
+const tone = stat.tone === 'flag' ? 'text-[var(--color-flag)]' : 'text-ink';
+const big = size === 'lg' ? 'text-4xl sm:text-5xl' : 'text-3xl sm:text-4xl';
+---
+
+<div class="text-center">
+  <p
+    class:list={['stat-num font-mono font-semibold tabular-nums', big, tone]}
+    data-target={stat.value}
+    data-decimals={stat.decimals ?? 0}
+    data-prefix={stat.prefix ?? ''}
+    data-suffix={stat.suffix ?? ''}
+  >
+    {stat.prefix ?? ''}0{stat.suffix ?? ''}
+  </p>
+  <p class="mx-auto mt-2 max-w-[18ch] text-sm leading-snug text-muted">{stat.label}</p>
+</div>
+
+<script>
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function animate(el: HTMLElement) {
+    const target = parseFloat(el.dataset.target || '0');
+    const decimals = parseInt(el.dataset.decimals || '0', 10);
+    const prefix = el.dataset.prefix || '';
+    const suffix = el.dataset.suffix || '';
+    const fmt = (n: number) => `${prefix}${n.toFixed(decimals)}${suffix}`;
+
+    if (reduce || target === 0) {
+      el.textContent = fmt(target);
+      return;
+    }
+    const dur = 1100;
+    const start = performance.now();
+    function step(now: number) {
+      const t = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - t, 3); // easeOutCubic
+      el.textContent = fmt(target * eased);
+      if (t < 1) requestAnimationFrame(step);
+      else el.textContent = fmt(target);
+    }
+    requestAnimationFrame(step);
+  }
+
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          animate(e.target as HTMLElement);
+          io.unobserve(e.target);
+        }
+      });
+    },
+    { threshold: 0.4 },
+  );
+  document.querySelectorAll<HTMLElement>('.stat-num').forEach((el) => io.observe(el));
+</script>

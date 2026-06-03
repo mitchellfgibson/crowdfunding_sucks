@@ -3,8 +3,12 @@ import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Container from '../components/Container.astro';
 import AuthCTA from '../components/AuthCTA.astro';
+import StatCounter from '../components/StatCounter.astro';
+import MarketShareChart from '../components/MarketShareChart.astro';
+import CapitalChart from '../components/CapitalChart.astro';
 import { withBase } from '../lib/url';
 import { publishers } from '../data/publishers';
+import { problemStats, marketStats, communityGoals, INDUSTRY_SOURCE } from '../data/industry';
 
 // Lead-gen front door. Stats are REAL counts of what's on this site (rule 1:
 // no fabricated/unsourced numbers) — they update as content is added.
@@ -48,16 +52,6 @@ const pillars = [
   },
 ];
 
-// Industry problems — qualitative framing (no fabricated precise stats),
-// adapted from crowdfundingsucks.com. Citation shown at the section.
-const problems = [
-  ['High failure rates', 'A large share of early-stage startups never return capital to investors.'],
-  ['Inflated valuations', 'Crowdfunding rounds often price well above comparable venture rounds.'],
-  ['Little liquidity', 'Most positions have no realistic path to an exit or resale.'],
-  ['No outcome tracking', 'Platforms rarely publish how their offerings actually performed.'],
-  ['First-time founders', 'Many raises are led by founders with no prior exit experience.'],
-  ['Pay-to-play promotion', 'Marketing spend, not merit, frequently drives which deals get attention.'],
-];
 ---
 
 <BaseLayout title="CrowdfundingSucks">
@@ -128,35 +122,53 @@ const problems = [
     </div>
   </Container>
 
-  {/* the transparency problem */}
+  {/* the transparency problem — animated stat counters */}
   <section class="border-y border-rule bg-paper-raised">
-    <Container class="py-16">
+    <Container class="py-16 sm:py-20">
       <h2 class="font-serif text-2xl text-ink sm:text-3xl">The crowdfunding industry has a transparency problem</h2>
       <p class="mt-2 max-w-2xl text-muted">
         Billions have flowed through equity crowdfunding since Reg CF launched in
         2016 — yet investors are largely left in the dark about outcomes.
       </p>
-      <div class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {
-          problems.map(([title, body]) => (
-            <div class="rounded-xl border border-rule bg-paper p-4">
-              <div class="flex items-center gap-2">
-                <span class="text-[var(--color-flag)]" aria-hidden="true">✕</span>
-                <h3 class="font-medium text-ink">{title}</h3>
-              </div>
-              <p class="mt-1.5 text-sm leading-relaxed text-muted">{body}</p>
-            </div>
-          ))
-        }
+      <div class="mt-10 grid grid-cols-2 gap-x-6 gap-y-10 sm:grid-cols-3">
+        {problemStats.map((s) => <StatCounter stat={s} />)}
       </div>
-      <p class="mt-6 max-w-2xl text-sm leading-relaxed text-faint">
-        Problem framing adapted from
-        <a href="https://crowdfundingsucks.com" rel="nofollow noopener" class="text-muted underline">crowdfundingsucks.com</a>.
-        We publish specific figures only where they can be tied to a source.
-        <a href={withBase('/about/')} class="text-muted underline">Read why this exists →</a>
+      <p class="mt-10 text-xs leading-relaxed text-faint">
+        Figures as published by
+        <a href={INDUSTRY_SOURCE.url} rel="nofollow noopener" class="text-muted underline">{INDUSTRY_SOURCE.label}</a>.
+        <a href={withBase('/about/')} class="text-muted underline">Why this exists →</a>
       </p>
     </Container>
   </section>
+
+  {/* crowdfunding by the numbers — market data + charts */}
+  <Container class="py-16 sm:py-20">
+    <h2 class="font-serif text-2xl text-ink sm:text-3xl">Crowdfunding by the numbers</h2>
+    <p class="mt-2 max-w-2xl text-muted">
+      The market is growing fast — but transparency hasn’t kept pace.
+    </p>
+
+    <div class="mt-8 grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4">
+      {marketStats.map((s) => <StatCounter stat={s} size="md" />)}
+    </div>
+
+    <div class="mt-12 grid gap-6 md:grid-cols-2">
+      <div class="rounded-xl border border-rule bg-paper-raised p-5">
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-faint">Platform market share</h3>
+        <div class="mt-4"><MarketShareChart /></div>
+      </div>
+      <div class="rounded-xl border border-rule bg-paper-raised p-5">
+        <h3 class="text-sm font-semibold uppercase tracking-wide text-faint">Annual Reg CF capital raised</h3>
+        <div class="mt-4"><CapitalChart /></div>
+      </div>
+    </div>
+
+    <p class="mt-6 text-xs leading-relaxed text-faint">
+      Market figures and breakdowns as published by
+      <a href={INDUSTRY_SOURCE.url} rel="nofollow noopener" class="text-muted underline">{INDUSTRY_SOURCE.label}</a>;
+      shown for context, not as investment advice.
+    </p>
+  </Container>
 
   {/* closing CTA */}
   <Container class="py-16">
@@ -166,7 +178,14 @@ const problems = [
         An investor-first community changing how crowdfunding gets evaluated —
         collectively, transparently, on the record.
       </p>
-      <div class="mt-6 flex justify-center">
+
+      {/* what the community is building toward (goals, not current counts) */}
+      <p class="mt-8 text-xs font-semibold uppercase tracking-wide text-faint">The community we’re building</p>
+      <div class="mx-auto mt-3 grid max-w-xl grid-cols-3 gap-4">
+        {communityGoals.map((s) => <StatCounter stat={s} size="md" />)}
+      </div>
+
+      <div class="mt-8 flex justify-center">
         <AuthCTA label="Join with Google" />
       </div>
     </div>

@@ -1,0 +1,40 @@
+---
+import { capitalByYear } from '../data/industry';
+
+/** Annual Reg CF capital raised as CSS columns; bars grow in on scroll. */
+const max = Math.max(...capitalByYear.map((d) => d.raised));
+---
+
+<div class="capital-chart flex h-40 items-end justify-between gap-2">
+  {
+    capitalByYear.map((d) => (
+      <div class="flex flex-1 flex-col items-center gap-1">
+        <span class="font-mono text-[0.6rem] text-faint">${d.raised}M</span>
+        <div
+          class="cap-bar w-full rounded-t bg-accent/80 transition-[height] duration-700 ease-out"
+          style="height:0"
+          data-h={`${(d.raised / max) * 100}`}
+        />
+        <span class="text-[0.65rem] text-muted">{d.year}</span>
+      </div>
+    ))
+  }
+</div>
+
+<script>
+  const io = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((e) => {
+        if (!e.isIntersecting) return;
+        e.target
+          .querySelectorAll<HTMLElement>('.cap-bar')
+          .forEach((bar) => {
+            bar.style.height = `${bar.dataset.h}%`;
+          });
+        io.unobserve(e.target);
+      });
+    },
+    { threshold: 0.3 },
+  );
+  document.querySelectorAll('.capital-chart').forEach((c) => io.observe(c));
+</script>
