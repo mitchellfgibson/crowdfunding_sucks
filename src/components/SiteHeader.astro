@@ -29,28 +29,75 @@ const isActive = (href: string) => path === href || path.startsWith(href);
       >
         Crowdfunding<span class="text-muted">Sucks</span>
       </a>
-      <nav aria-label="Primary">
-        <ul class="flex items-center gap-5 text-sm">
-          {
-            nav.map((item) => (
-              <li>
-                <a
-                  href={item.href}
-                  aria-current={isActive(item.href) ? 'page' : undefined}
-                  class:list={[
-                    'no-underline font-semibold transition-colors',
-                    isActive(item.href)
-                      ? 'text-ink font-bold'
-                      : 'text-muted hover:text-ink',
-                  ]}
-                >
-                  {item.label}
-                </a>
-              </li>
-            ))
-          }
-        </ul>
-      </nav>
+      <div class="flex items-center gap-5">
+        <nav aria-label="Primary">
+          <ul class="flex items-center gap-5 text-sm">
+            {
+              nav.map((item) => (
+                <li>
+                  <a
+                    href={item.href}
+                    aria-current={isActive(item.href) ? 'page' : undefined}
+                    class:list={[
+                      'no-underline font-semibold transition-colors',
+                      isActive(item.href)
+                        ? 'text-ink font-bold'
+                        : 'text-muted hover:text-ink',
+                    ]}
+                  >
+                    {item.label}
+                  </a>
+                </li>
+              ))
+            }
+          </ul>
+        </nav>
+
+        {/* account state — revealed by the script when a session exists */}
+        <div id="account-chip" class="hidden items-center gap-2">
+          <span
+            id="account-initials"
+            class="flex h-8 w-8 items-center justify-center rounded-full bg-accent text-xs font-semibold text-white"
+            title="Signed in"
+          ></span>
+          <button
+            id="account-signout"
+            type="button"
+            class="text-xs font-medium text-muted transition-colors hover:text-ink"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
     </div>
   </Container>
 </header>
+
+<script>
+  import { supabase, userInitials } from '../lib/supabase';
+  import { withBase } from '../lib/url';
+
+  const chip = document.getElementById('account-chip');
+  const initialsEl = document.getElementById('account-initials');
+  const signoutBtn = document.getElementById('account-signout');
+
+  function render(user: Parameters<typeof userInitials>[0]) {
+    if (!chip || !initialsEl) return;
+    if (user) {
+      initialsEl.textContent = userInitials(user);
+      chip.classList.remove('hidden');
+      chip.classList.add('flex');
+    } else {
+      chip.classList.add('hidden');
+      chip.classList.remove('flex');
+    }
+  }
+
+  supabase.auth.getUser().then(({ data }) => render(data.user));
+  supabase.auth.onAuthStateChange((_e, session) => render(session?.user ?? null));
+
+  signoutBtn?.addEventListener('click', async () => {
+    await supabase.auth.signOut();
+    window.location.replace(withBase('/'));
+  });
+</script>

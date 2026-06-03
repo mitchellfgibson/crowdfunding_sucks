@@ -1,9 +1,10 @@
 ---
 /**
- * "Join with Google" button — DEMO ONLY. There is no auth backend yet; this is
- * a visual placeholder for the eventual sign-in flow. Renders the standard
- * Google button styling with the 4-color G mark. Clicking it shows a short
- * "coming soon" note rather than attempting OAuth.
+ * "Join with Google" button — real Supabase Google OAuth. Clicking it starts
+ * the Google sign-in redirect via signInWithGoogle() (src/lib/supabase.ts) and
+ * returns to /auth/callback/. Requires the Google provider to be enabled in the
+ * Supabase project (one-time dashboard step) — until then Google returns an
+ * error which we surface in the note.
  */
 interface Props {
   label?: string;
@@ -28,12 +29,23 @@ const { label = 'Join with Google' } = Astro.props;
 </div>
 
 <script>
+  import { signInWithGoogle } from '../lib/supabase';
+
   // Bind every instance (the button can appear more than once per page).
   document.querySelectorAll<HTMLElement>('.google-signin').forEach((root) => {
-    const btn = root.querySelector('.google-signin-btn');
+    const btn = root.querySelector<HTMLButtonElement>('.google-signin-btn');
     const note = root.querySelector('.google-signin-note');
-    btn?.addEventListener('click', () => {
-      if (note) note.textContent = 'Sign-in is coming soon — this is a demo.';
+    btn?.addEventListener('click', async () => {
+      btn.disabled = true;
+      if (note) note.textContent = 'Redirecting to Google…';
+      const { error } = await signInWithGoogle();
+      if (error) {
+        btn.disabled = false;
+        if (note)
+          note.textContent =
+            'Google sign-in isn’t enabled yet (enable the Google provider in Supabase).';
+      }
+      // on success the browser redirects to Google, then back to /auth/callback/
     });
   });
 </script>
