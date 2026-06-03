@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import SiteHeader from '../components/SiteHeader.astro';
 import SiteFooter from '../components/SiteFooter.astro';
+import ThemeSwitcher from '../components/ThemeSwitcher.astro';
 import { withBase } from '../lib/url';
 
 interface Props {
@@ -35,6 +36,16 @@ const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    {/* apply saved theme before paint to avoid a flash */}
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem('cf-theme');
+          if (t && t !== 'paper') document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" href={withBase('/favicon.svg')} type="image/svg+xml" />
     <link rel="sitemap" href={withBase('/sitemap-index.xml')} />
     <link rel="alternate" type="application/rss+xml" title={siteName} href={withBase('/rss.xml')} />
@@ -69,5 +80,6 @@ const plausibleDomain = import.meta.env.PUBLIC_PLAUSIBLE_DOMAIN;
       <slot />
     </main>
     <SiteFooter />
+    <ThemeSwitcher />
   </body>
 </html>

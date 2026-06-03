@@ -1,0 +1,80 @@
+---
+/**
+ * Floating theme switcher (bottom-right) — TESTING aid. Sets html[data-theme]
+ * and remembers the choice in localStorage. Themes are pure CSS-variable
+ * overrides (see global.css), so switching re-skins everything live.
+ */
+const themes = [
+  { id: 'paper', label: 'Paper', dot: '#fbfaf7' },
+  { id: 'slate', label: 'Slate', dot: '#2563eb' },
+  { id: 'midnight', label: 'Midnight', dot: '#0b1220' },
+  { id: 'terminal', label: 'Terminal', dot: '#07120c' },
+];
+---
+
+<div class="fixed bottom-4 right-4 z-40">
+  <details id="theme-switcher" class="group">
+    <summary
+      class="flex cursor-pointer list-none items-center gap-2 rounded-full border border-rule bg-paper-raised px-3 py-2 text-xs font-semibold text-ink shadow-lg [&::-webkit-details-marker]:hidden"
+      title="Switch theme (testing)"
+    >
+      <span aria-hidden="true">🎨</span>
+      <span class="hidden sm:inline">Theme</span>
+      <span id="theme-current" class="text-faint"></span>
+    </summary>
+    <div class="absolute bottom-12 right-0 w-44 overflow-hidden rounded-xl border border-rule bg-paper-raised shadow-xl">
+      {
+        themes.map((t) => (
+          <button
+            type="button"
+            data-theme-id={t.id}
+            class="theme-opt flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-sm text-ink transition-colors hover:bg-paper"
+          >
+            <span
+              class="h-4 w-4 shrink-0 rounded-full border border-rule"
+              style={`background:${t.dot}`}
+              aria-hidden="true"
+            />
+            <span class="flex-1">{t.label}</span>
+            <span class="theme-check hidden text-accent" data-for={t.id} aria-hidden="true">✓</span>
+          </button>
+        ))
+      }
+      <p class="border-t border-rule px-3 py-1.5 text-[0.65rem] text-faint">Testing only</p>
+    </div>
+  </details>
+</div>
+
+<script>
+  const KEY = 'cf-theme';
+  const root = document.documentElement;
+  const labelEl = document.getElementById('theme-current');
+  const details = document.getElementById('theme-switcher') as HTMLDetailsElement | null;
+  const labels: Record<string, string> = {
+    paper: 'Paper',
+    slate: 'Slate',
+    midnight: 'Midnight',
+    terminal: 'Terminal',
+  };
+
+  function apply(theme: string) {
+    if (theme === 'paper') root.removeAttribute('data-theme');
+    else root.setAttribute('data-theme', theme);
+    if (labelEl) labelEl.textContent = labels[theme] ?? '';
+    document.querySelectorAll<HTMLElement>('.theme-check').forEach((c) => {
+      c.classList.toggle('hidden', c.dataset.for !== theme);
+    });
+  }
+
+  const saved = localStorage.getItem(KEY) || 'paper';
+  apply(saved);
+
+  document.querySelectorAll<HTMLButtonElement>('.theme-opt').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.themeId!;
+      localStorage.setItem(KEY, id);
+      apply(id);
+      if (details) details.open = false;
+    });
+  });
+</script>

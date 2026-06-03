@@ -41,6 +41,61 @@
   --spacing-measure: 68ch; /* ideal reading width for long-form */
 }
 
+/*
+ * Alternate themes (testing). Tailwind v4 utilities compile to var(--color-*),
+ * so overriding these custom properties under html[data-theme] re-skins the
+ * whole site with no markup changes. The semantic roles stay the same:
+ * gain=positive, loss/flag=negative, notice=illustrative.
+ */
+
+/* Slate — modern, cooler, less "papery" light theme */
+html[data-theme="slate"] {
+  --color-paper: #eef1f5;
+  --color-paper-raised: #ffffff;
+  --color-ink: #18222e;
+  --color-muted: #56616f;
+  --color-faint: #8a97a6;
+  --color-rule: #dde3ea;
+  --color-accent: #2563eb;
+  --color-accent-ink: #1d4ed8;
+  --color-flag: #b3402f;
+  --color-gain: #1f7a4d;
+  --color-loss: #c0392b;
+  --color-notice: #9a6a14;
+}
+
+/* Midnight — dark navy, finance-terminal feel */
+html[data-theme="midnight"] {
+  --color-paper: #0b1220;
+  --color-paper-raised: #131d30;
+  --color-ink: #e9eef7;
+  --color-muted: #9eabc2;
+  --color-faint: #647391;
+  --color-rule: #243149;
+  --color-accent: #5b9dff;
+  --color-accent-ink: #88b8ff;
+  --color-flag: #ff6f61;
+  --color-gain: #3ad07f;
+  --color-loss: #ff6f61;
+  --color-notice: #e6b34a;
+}
+
+/* Terminal — dark green/gold, Bloomberg-meets-trading-desk */
+html[data-theme="terminal"] {
+  --color-paper: #07120c;
+  --color-paper-raised: #0d1c13;
+  --color-ink: #d9f5e4;
+  --color-muted: #82b89a;
+  --color-faint: #4d7c62;
+  --color-rule: #1b3a28;
+  --color-accent: #e0b341;
+  --color-accent-ink: #f1c95f;
+  --color-flag: #ff7a6b;
+  --color-gain: #34d17a;
+  --color-loss: #ff7a6b;
+  --color-notice: #e0c04c;
+}
+
 /* base element styles */
 html {
   -webkit-text-size-adjust: 100%;
