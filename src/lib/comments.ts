@@ -188,8 +188,9 @@ export async function fetchReactions(commentIds: string[]): Promise<Map<string, 
 }
 
 /**
- * Toggle the current user's reaction with `emoji` on a comment. Returns the new
- * state (whether the user now has it set). One row per (comment, user, emoji).
+ * Set the current user's reaction on a comment to `emoji` — ONE per user per
+ * comment. Clicking the emoji they already have removes it; clicking a
+ * different one replaces it. Returns the new active state for `emoji`.
  */
 export async function toggleReaction(
   commentId: string,
@@ -199,26 +200,30 @@ export async function toggleReaction(
   const user = auth.user;
   if (!user) return { ok: false, message: 'Sign in to react.' };
 
-  // is it already set?
+  // what does this user currently have on this comment? (at most one)
   const { data: existing } = await supabase
     .from('comment_reactions')
-    .select('comment_id')
+    .select('emoji')
     .eq('comment_id', commentId)
-    .eq('user_id', user.id)
-    .eq('emoji', emoji)
-    .maybeSingle();
+    .eq('user_id', user.id);
 
-  if (existing) {
+  const current = (existing ?? []) as { emoji: string }[];
+  const hasSame = current.some((r) => r.emoji === emoji);
+
+  // remove any existing reaction by this user on this comment
+  if (current.length > 0) {
     const { error } = await supabase
       .from('comment_reactions')
       .delete()
       .eq('comment_id', commentId)
-      .eq('user_id', user.id)
-      .eq('emoji', emoji);
+      .eq('user_id', user.id);
     if (error) return { ok: false, message: error.message };
-    return { ok: true, active: false };
   }
 
+  // clicking the one you already had = just remove it (toggle off)
+  if (hasSame) return { ok: true, active: false };
+
+  // otherwise set the new one
   const { error } = await supabase
     .from('comment_reactions')
     .insert({ comment_id: commentId, user_id: user.id, emoji });
