@@ -1,40 +1,64 @@
 ---
 import { capitalByYear } from '../data/industry';
 
-/** Annual Reg CF capital raised as CSS columns; bars grow in on scroll. */
+/**
+ * Annual Reg CF capital raised — CSS column chart. Bar heights are computed in
+ * PIXELS (not %) so they don't depend on parent height resolution, then grow in
+ * on scroll. Track area is a fixed height.
+ */
+const TRACK = 132; // px tall plot area
 const max = Math.max(...capitalByYear.map((d) => d.raised));
+const bars = capitalByYear.map((d) => ({
+  ...d,
+  px: Math.max(4, Math.round((d.raised / max) * TRACK)),
+}));
 ---
 
-<div class="capital-chart flex h-40 items-end justify-between gap-2">
-  {
-    capitalByYear.map((d) => (
-      <div class="flex flex-1 flex-col items-center gap-1">
-        <span class="font-mono text-[0.6rem] text-faint">${d.raised}M</span>
-        <div
-          class="cap-bar w-full rounded-t bg-accent/80 transition-[height] duration-700 ease-out"
-          style="height:0"
-          data-h={`${(d.raised / max) * 100}`}
-        />
-        <span class="text-[0.65rem] text-muted">{d.year}</span>
-      </div>
-    ))
-  }
+<div class="capital-chart">
+  <div class="flex items-end justify-between gap-2" style={`height:${TRACK}px`}>
+    {
+      bars.map((d) => (
+        <div class="flex h-full flex-1 flex-col items-center justify-end gap-1">
+          <span class="font-mono text-[0.6rem] text-faint">${d.raised}M</span>
+          <div
+            class="cap-bar w-full rounded-t bg-accent/80 transition-[height] duration-700 ease-out"
+            style="height:0px"
+            data-h={d.px}
+            title={`${d.year}: $${d.raised}M`}
+          />
+        </div>
+      ))
+    }
+  </div>
+  <div class="mt-1 flex justify-between gap-2">
+    {bars.map((d) => <span class="flex-1 text-center text-[0.65rem] text-muted">{d.year}</span>)}
+  </div>
 </div>
 
 <script>
-  const io = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((e) => {
-        if (!e.isIntersecting) return;
-        e.target
-          .querySelectorAll<HTMLElement>('.cap-bar')
-          .forEach((bar) => {
-            bar.style.height = `${bar.dataset.h}%`;
-          });
-        io.unobserve(e.target);
-      });
-    },
-    { threshold: 0.3 },
-  );
-  document.querySelectorAll('.capital-chart').forEach((c) => io.observe(c));
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function fill(chart: Element) {
+    chart.querySelectorAll<HTMLElement>('.cap-bar').forEach((bar) => {
+      bar.style.height = `${bar.dataset.h}px`;
+    });
+  }
+
+  document.querySelectorAll<HTMLElement>('.capital-chart').forEach((chart) => {
+    if (reduce) {
+      fill(chart);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          if (!e.isIntersecting) return;
+          fill(e.target);
+          io.unobserve(e.target);
+        });
+      },
+      { threshold: 0.25 },
+    );
+    io.observe(chart);
+  });
 </script>

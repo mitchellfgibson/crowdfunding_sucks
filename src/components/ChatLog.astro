@@ -106,7 +106,7 @@ const messages =
   import { supabase } from '../lib/supabase';
   import {
     fetchComments, postComment, resolveUsername, setUsername, timeAgo,
-    fetchReactions, toggleReaction, REACTION_EMOJIS,
+    fetchReactions, toggleReaction, REACTION_EMOJIS, type Comment,
   } from '../lib/comments';
 
   function esc(s: string) {
@@ -129,93 +129,175 @@ const messages =
     const note = root.querySelector<HTMLElement>('.chat-note')!;
 
     let username = '';
+    let signedIn = false;
     let loaded = false;
     const sampleCount = list.querySelectorAll('li').length;
 
-    // build the reaction bar markup for one comment
-    function reactionBar(commentId: string): string {
-      const btns = REACTION_EMOJIS.map(
-        (e) => `
-        <button type="button" class="rx-btn inline-flex items-center gap-1 rounded-full border border-rule px-1.5 py-0.5 text-[0.65rem] text-muted transition-colors hover:border-accent/50 hover:bg-accent/5 disabled:opacity-50"
-          data-comment="${commentId}" data-emoji="${e}" aria-pressed="false">
-          <span>${e}</span><span class="rx-n tabular-nums"></span>
-        </button>`,
-      ).join('');
-      return `<div class="rx-bar mt-1.5 flex flex-wrap gap-1" data-comment="${commentId}">${btns}</div>`;
-    }
-
-    function appendComment(c: { id: string; username: string; body: string; created_at: string }) {
+    // ---- one comment node (top-level or reply) -------------------------
+    function commentNode(c: Comment, isReply: boolean): HTMLLIElement {
       const li = document.createElement('li');
-      li.className = 'flex gap-2.5 px-3 py-2.5';
+      li.className = isReply ? 'flex gap-2 py-2' : 'flex gap-2.5 px-3 py-2.5';
+      li.dataset.id = c.id;
+      const avatar = isReply ? 'h-6 w-6 text-[0.55rem]' : 'h-7 w-7 text-[0.6rem]';
       li.innerHTML = `
-        <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-[0.6rem] font-semibold text-white">${initials(c.username)}</span>
+        <span class="mt-0.5 flex ${avatar} shrink-0 items-center justify-center rounded-md bg-accent font-semibold text-white">${initials(c.username)}</span>
         <div class="min-w-0 flex-1">
           <div class="flex items-baseline gap-2">
             <span class="truncate text-sm font-medium text-ink">${esc(c.username)}</span>
             <span class="text-[0.65rem] text-faint">${timeAgo(c.created_at)}</span>
           </div>
           <p class="text-sm leading-relaxed text-ink">${esc(c.body)}</p>
-          ${reactionBar(c.id)}
+          <div class="rx-bar mt-1.5 flex flex-wrap items-center gap-1" data-comment="${c.id}"></div>
+          <div class="chat-actions mt-1 flex items-center gap-3 text-[0.65rem] text-faint">
+            <button type="button" class="react-add hover:text-accent">😀﹢ react</button>
+            ${isReply ? '' : '<button type="button" class="reply-btn hover:text-accent">↳ reply</button>'}
+          </div>
+          ${isReply ? '' : '<ul class="reply-list mt-2 space-y-1 border-l border-rule pl-3"></ul><div class="reply-box mt-2 hidden"></div>'}
         </div>`;
-      list.appendChild(li);
-      wireReactionBar(li.querySelector<HTMLElement>('.rx-bar')!);
+      wireComment(li, c.id);
+      return li;
     }
 
-    function paintReactionBar(bar: HTMLElement, summary?: { counts: Record<string, number>; mine: Set<string> }) {
-      bar.querySelectorAll<HTMLButtonElement>('.rx-btn').forEach((btn) => {
-        const emoji = btn.dataset.emoji!;
-        const n = summary?.counts[emoji] ?? 0;
-        const mine = summary?.mine.has(emoji) ?? false;
-        const nEl = btn.querySelector<HTMLElement>('.rx-n')!;
-        nEl.textContent = n > 0 ? String(n) : '';
-        btn.setAttribute('aria-pressed', String(mine));
-        btn.classList.toggle('border-accent', mine);
-        btn.classList.toggle('text-accent', mine);
-        btn.classList.toggle('bg-accent/5', mine);
+    // ---- Slack-style reactions ----------------------------------------
+    function renderReactionBar(bar: HTMLElement, summary?: { counts: Record<string, number>; mine: Set<string> }) {
+      const counts = summary?.counts ?? {};
+      const mine = summary?.mine ?? new Set<string>();
+      const pills = Object.entries(counts)
+        .filter(([, n]) => n > 0)
+        .map(([emoji, n]) => {
+          const on = mine.has(emoji);
+          return `<button type="button" class="rx-pill inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[0.65rem] transition-colors ${
+            on ? 'border-accent bg-accent/10 text-accent' : 'border-rule text-muted hover:border-accent/50'
+          }" data-emoji="${emoji}"><span>${emoji}</span><span class="tabular-nums">${n}</span></button>`;
+        })
+        .join('');
+      // the "add reaction" button is rendered in chat-actions; here we keep pills
+      bar.innerHTML = pills;
+      bar.querySelectorAll<HTMLButtonElement>('.rx-pill').forEach((pill) => {
+        pill.addEventListener('click', () => react(bar.dataset.comment!, pill.dataset.emoji!, bar));
       });
     }
 
-    function wireReactionBar(bar: HTMLElement) {
-      bar.querySelectorAll<HTMLButtonElement>('.rx-btn').forEach((btn) => {
-        btn.addEventListener('click', async () => {
-          btn.disabled = true;
-          const res = await toggleReaction(btn.dataset.comment!, btn.dataset.emoji!);
-          btn.disabled = false;
-          if (!res.ok) {
-            note.textContent = res.message;
-            return;
-          }
-          const nEl = btn.querySelector<HTMLElement>('.rx-n')!;
-          const cur = parseInt(nEl.textContent || '0', 10);
-          const next = res.active ? cur + 1 : Math.max(0, cur - 1);
-          nEl.textContent = next > 0 ? String(next) : '';
-          btn.setAttribute('aria-pressed', String(res.active));
-          btn.classList.toggle('border-accent', res.active);
-          btn.classList.toggle('text-accent', res.active);
-          btn.classList.toggle('bg-accent/5', res.active);
+    async function react(commentId: string, emoji: string, bar: HTMLElement) {
+      if (!signedIn) { note.textContent = 'Sign in to react.'; return; }
+      const res = await toggleReaction(commentId, emoji);
+      if (!res.ok) { note.textContent = res.message; return; }
+      // re-fetch just this comment's reactions to repaint accurately
+      const summaries = await fetchReactions([commentId]);
+      renderReactionBar(bar, summaries.get(commentId));
+    }
+
+    // emoji picker popover
+    let openPicker: HTMLElement | null = null;
+    function closePicker() { openPicker?.remove(); openPicker = null; }
+    document.addEventListener('click', (e) => {
+      if (openPicker && !openPicker.contains(e.target as Node)) closePicker();
+    });
+
+    function showPicker(anchor: HTMLElement, commentId: string, bar: HTMLElement) {
+      closePicker();
+      if (!signedIn) { note.textContent = 'Sign in to react.'; return; }
+      const pop = document.createElement('div');
+      pop.className = 'absolute z-30 mt-1 flex gap-1 rounded-full border border-rule bg-paper-raised px-2 py-1 shadow-lg';
+      pop.innerHTML = REACTION_EMOJIS.map(
+        (e) => `<button type="button" class="px-1 text-base hover:scale-125 transition-transform" data-emoji="${e}">${e}</button>`,
+      ).join('');
+      anchor.style.position = 'relative';
+      anchor.appendChild(pop);
+      openPicker = pop;
+      pop.querySelectorAll<HTMLButtonElement>('button').forEach((b) => {
+        b.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          react(commentId, b.dataset.emoji!, bar);
+          closePicker();
         });
       });
     }
 
+    // ---- wire per-comment actions (react, reply) ----------------------
+    function wireComment(li: HTMLElement, commentId: string) {
+      const addBtn = li.querySelector<HTMLButtonElement>('.react-add')!;
+      const bar = li.querySelector<HTMLElement>('.rx-bar')!;
+      addBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        showPicker(addBtn, commentId, bar);
+      });
+
+      const replyBtn = li.querySelector<HTMLButtonElement>('.reply-btn');
+      if (replyBtn) {
+        const box = li.querySelector<HTMLElement>('.reply-box')!;
+        replyBtn.addEventListener('click', () => {
+          if (!signedIn) { note.textContent = 'Sign in to reply.'; return; }
+          if (!box.dataset.built) {
+            box.innerHTML = `
+              <div class="flex items-center gap-2">
+                <input type="text" maxlength="800" placeholder="Reply…" class="reply-input flex-1 rounded-full border border-rule bg-paper-raised px-3 py-1 text-sm text-ink placeholder:text-faint" />
+                <button type="button" class="reply-send rounded-full bg-accent px-2.5 py-1 text-[0.65rem] font-semibold text-white">Reply</button>
+              </div>`;
+            box.dataset.built = '1';
+            const ri = box.querySelector<HTMLInputElement>('.reply-input')!;
+            const rs = box.querySelector<HTMLButtonElement>('.reply-send')!;
+            const doReply = async () => {
+              const body = ri.value;
+              if (!body.trim()) return;
+              rs.disabled = true;
+              const res = await postComment(thread, body, username, commentId);
+              rs.disabled = false;
+              if (!res.ok) { note.textContent = res.message; return; }
+              const rlist = li.querySelector<HTMLElement>('.reply-list')!;
+              rlist.appendChild(commentNode(res.comment, true));
+              ri.value = '';
+              box.classList.add('hidden');
+              bumpCount();
+            };
+            rs.addEventListener('click', doReply);
+            ri.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); doReply(); } });
+          }
+          box.classList.toggle('hidden');
+          box.querySelector<HTMLInputElement>('.reply-input')?.focus();
+        });
+      }
+    }
+
+    function bumpCount() {
+      countEl.textContent = String(sampleCount + list.querySelectorAll('li[data-id], .reply-list li').length);
+    }
+
+    // ---- load + nest ---------------------------------------------------
     async function loadOnce() {
       if (loaded) return;
       loaded = true;
       const comments = await fetchComments(thread);
-      comments.forEach(appendComment);
-      countEl.textContent = String(sampleCount + comments.length);
-      // hydrate reaction counts in one query
+      const tops = comments.filter((c) => !c.parent_id);
+      const repliesBy = new Map<string, Comment[]>();
+      comments.filter((c) => c.parent_id).forEach((c) => {
+        const arr = repliesBy.get(c.parent_id!) ?? [];
+        arr.push(c);
+        repliesBy.set(c.parent_id!, arr);
+      });
+
+      tops.forEach((c) => {
+        const li = commentNode(c, false);
+        list.appendChild(li);
+        const rlist = li.querySelector<HTMLElement>('.reply-list')!;
+        (repliesBy.get(c.id) ?? []).forEach((r) => rlist.appendChild(commentNode(r, true)));
+      });
+      bumpCount();
+
+      // hydrate all reaction bars in one query
       const summaries = await fetchReactions(comments.map((c) => c.id));
-      list.querySelectorAll<HTMLElement>('.rx-bar').forEach((bar) => {
-        paintReactionBar(bar, summaries.get(bar.dataset.comment!));
+      root.querySelectorAll<HTMLElement>('.rx-bar').forEach((bar) => {
+        const id = bar.dataset.comment!;
+        if (summaries.has(id)) renderReactionBar(bar, summaries.get(id));
       });
     }
 
-    // load real comments when the thread is opened (or immediately if open)
     if (root.open) loadOnce();
     root.addEventListener('toggle', () => root.open && loadOnce());
 
-    // composer state from session
+    // ---- session / composer -------------------------------------------
     async function applyAuth(user: any) {
+      signedIn = !!user;
       if (user) {
         username = resolveUsername(user);
         asRow.classList.remove('hidden');
@@ -234,7 +316,6 @@ const messages =
     supabase.auth.getUser().then(({ data }) => applyAuth(data.user));
     supabase.auth.onAuthStateChange((_e, s) => applyAuth(s?.user ?? null));
 
-    // change display name
     unameBtn.addEventListener('click', async () => {
       const next = prompt('Choose a display name:', username);
       if (!next || !next.trim()) return;
@@ -252,21 +333,15 @@ const messages =
       note.textContent = 'Posting…';
       const res = await postComment(thread, body, username);
       send.disabled = false;
-      if (!res.ok) {
-        note.textContent = res.message;
-        return;
-      }
-      appendComment(res.comment);
-      countEl.textContent = String(list.querySelectorAll('li').length);
+      if (!res.ok) { note.textContent = res.message; return; }
+      list.appendChild(commentNode(res.comment, false));
+      bumpCount();
       input.value = '';
       note.textContent = '';
     }
     send.addEventListener('click', submit);
     input.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        submit();
-      }
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit(); }
     });
   });
 </script>

@@ -15,6 +15,7 @@ import { supabase } from './supabase';
 export interface Comment {
   id: string;
   thread: string;
+  parent_id: string | null; // null = top-level; otherwise replies to that comment
   user_id: string;
   username: string;
   body: string;
@@ -69,25 +70,30 @@ export function hasProfanity(text: string): boolean {
   });
 }
 
-/** Fetch all comments for a thread, oldest first. */
+const COMMENT_COLS = 'id, thread, parent_id, user_id, username, body, created_at';
+
+/** Fetch all comments for a thread, oldest first (flat; nest client-side). */
 export async function fetchComments(thread: string): Promise<Comment[]> {
   const { data, error } = await supabase
     .from('comments')
-    .select('id, thread, user_id, username, body, created_at')
+    .select(COMMENT_COLS)
     .eq('thread', thread)
     .order('created_at', { ascending: true });
   if (error) {
     console.warn('fetchComments', error.message);
     return [];
   }
-  return data ?? [];
+  return (data ?? []) as Comment[];
 }
 
-/** Post a comment to a thread as the current user. Returns the inserted row. */
+/**
+ * Post a comment (or a reply, when `parentId` is set) as the current user.
+ */
 export async function postComment(
   thread: string,
   body: string,
   username: string,
+  parentId: string | null = null,
 ): Promise<{ ok: true; comment: Comment } | { ok: false; message: string }> {
   const text = body.trim();
   if (!text) return { ok: false, message: 'Say something first.' };
@@ -100,8 +106,8 @@ export async function postComment(
 
   const { data, error } = await supabase
     .from('comments')
-    .insert({ thread, body: text, username, user_id: user.id })
-    .select('id, thread, user_id, username, body, created_at')
+    .insert({ thread, body: text, username, user_id: user.id, parent_id: parentId })
+    .select(COMMENT_COLS)
     .single();
 
   if (error) return { ok: false, message: error.message };

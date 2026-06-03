@@ -65,7 +65,7 @@ export const capitalByYear: { year: string; raised: number }[] = [
  * don't misstate our own traction.
  */
 export const communityGoals: Stat[] = [
-  { value: 10, suffix: 'K+', label: 'investor community members' },
-  { value: 50, suffix: 'K+', label: 'discussions' },
+  { value: 1, suffix: 'K+', label: 'investor community members' },
+  { value: 5, suffix: 'K+', label: 'discussions' },
   { value: 2.3, prefix: '$', suffix: 'B', decimals: 1, label: 'in deals monitored' },
 ];
