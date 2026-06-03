@@ -19,7 +19,6 @@ const stats = [
   { value: `${portals.length}`, label: 'Platforms tracked' },
   { value: `${publishers.length}`, label: 'Publishers covered' },
   { value: `${analystCount}`, label: 'Analysts followed' },
-  { value: 'Sourced', label: 'Every datum cited' },
 ];
 
 const tracks = ['Winners', 'Losers', 'Hot Deals', 'Cap Tables', 'Publisher Picks', 'Deal Structures'];
@@ -89,7 +88,7 @@ const pillars = [
   {/* real stats bar */}
   <section class="border-b border-rule bg-paper-raised">
     <Container class="py-10">
-      <div class="grid grid-cols-2 gap-6 text-center sm:grid-cols-4">
+      <div class="grid grid-cols-3 gap-6 text-center">
         {
           stats.map((s) => (
             <div>
