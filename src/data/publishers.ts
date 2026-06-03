@@ -14,6 +14,7 @@ export interface Analyst {
 
 export interface Publisher {
   name: string;
+  url: string; // official site (used for the logo favicon + a reference link)
   description: string; // factual, as written by the source
   analysts: Analyst[];
 }
@@ -40,6 +41,7 @@ export const PUBLISHERS_INTRO =
 export const publishers: Publisher[] = [
   {
     name: 'Palm Beach Research Group',
+    url: 'https://palmbeachgroup.com',
     description:
       'Publisher known for promoting emerging technology, crypto, and venture-style investment opportunities through multiple newsletters.',
     analysts: [
@@ -51,6 +53,7 @@ export const publishers: Publisher[] = [
   },
   {
     name: 'Paradigm Press Group',
+    url: 'https://paradigmpressgroup.com',
     description:
       'Investment research publisher featuring analysts focused on macro trends, emerging technologies, and speculative investment opportunities.',
     analysts: [
@@ -63,6 +66,7 @@ export const publishers: Publisher[] = [
   },
   {
     name: 'Stansberry Research',
+    url: 'https://stansberryresearch.com',
     description:
       'Large investment newsletter publisher known for macro, commodities, and speculative investment research.',
     analysts: [
@@ -75,6 +79,7 @@ export const publishers: Publisher[] = [
   },
   {
     name: 'Banyan Hill Publishing',
+    url: 'https://banyanhill.com',
     description:
       'Financial publisher focused on emerging technologies, cryptocurrency, and speculative growth opportunities.',
     analysts: [
@@ -87,6 +92,7 @@ export const publishers: Publisher[] = [
   },
   {
     name: 'Casey Research',
+    url: 'https://caseyresearch.com',
     description:
       'Investment research firm specializing in natural resources, commodities, and global macro analysis.',
     analysts: [
@@ -97,6 +103,7 @@ export const publishers: Publisher[] = [
   },
   {
     name: 'Angel Publishing',
+    url: 'https://angelpub.com',
     description:
       'Financial publisher covering alternative investments, microcaps, and options strategies.',
     analysts: [
@@ -107,6 +114,7 @@ export const publishers: Publisher[] = [
   },
   {
     name: 'Oxford Club',
+    url: 'https://oxfordclub.com',
     description:
       'Investment research organization focused on global equities, dividends, and trading strategies.',
     analysts: [
@@ -117,6 +125,7 @@ export const publishers: Publisher[] = [
   },
   {
     name: 'Crowdability',
+    url: 'https://crowdability.com',
     description:
       'Investment research service focused specifically on private startup and crowdfunding investments.',
     analysts: [
@@ -126,6 +135,7 @@ export const publishers: Publisher[] = [
   },
   {
     name: 'Early Investing',
+    url: 'https://earlyinvesting.com',
     description:
       'Publisher focused on venture-style startup investing and private market opportunities.',
     analysts: [
@@ -135,6 +145,7 @@ export const publishers: Publisher[] = [
   },
   {
     name: 'Motley Fool',
+    url: 'https://fool.com',
     description:
       'Major financial media company with coverage spanning public equities, private markets, and venture investing.',
     analysts: [
