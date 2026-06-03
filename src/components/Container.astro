@@ -11,9 +11,11 @@ interface Props {
 
 const { width = 'site', as = 'div', class: className = '' }: Props = Astro.props;
 const Tag = as;
-const max = width === 'prose' ? 'max-w-[var(--spacing-measure)]' : 'max-w-5xl';
+// `prose` stays at the reading measure for long-form legibility; `site` uses a
+// wider column so pages aren't boxed into the middle on large screens.
+const max = width === 'prose' ? 'max-w-[var(--spacing-measure)]' : 'max-w-7xl';
 ---
 
-<Tag class:list={['mx-auto w-full px-5 sm:px-6', max, className]}>
+<Tag class:list={['mx-auto w-full px-5 sm:px-8 lg:px-12', max, className]}>
   <slot />
 </Tag>
