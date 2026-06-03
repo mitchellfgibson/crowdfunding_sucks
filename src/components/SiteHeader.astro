@@ -31,7 +31,7 @@ const isActive = (href: string) => path === href || path.startsWith(href);
       </a>
       <div class="flex items-center gap-5">
         <nav aria-label="Primary">
-          <ul class="flex items-center gap-5 text-sm">
+          <ul class="flex items-center gap-5">
             {
               nav.map((item) => (
                 <li>
@@ -39,9 +39,9 @@ const isActive = (href: string) => path === href || path.startsWith(href);
                     href={item.href}
                     aria-current={isActive(item.href) ? 'page' : undefined}
                     class:list={[
-                      'no-underline font-semibold transition-colors',
+                      'text-xs font-semibold uppercase tracking-wide no-underline transition-colors',
                       isActive(item.href)
-                        ? 'text-ink font-bold'
+                        ? 'text-ink'
                         : 'text-muted hover:text-ink',
                     ]}
                   >
