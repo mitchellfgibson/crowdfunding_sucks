@@ -3,17 +3,13 @@ import Avatar from './Avatar.astro';
 import { sampleChat, type ChatMessage } from '../lib/sampleChat';
 
 /**
- * Illustrative sample chat log. Renders a deterministic, FICTIONAL conversation
- * so the community interface can be previewed without accounts or a real
- * backend. Clearly labeled as sample; the composer is disabled. Lives strictly
- * in the "community discussion — not editorial" zone.
+ * Community chat log. Renders the deterministic FICTIONAL sample conversation
+ * server-side (kept as seed content + clearly labeled), then a script hydrates
+ * REAL comments from Supabase below them and enables the composer for signed-in
+ * users. The `seed` doubles as the Supabase thread key.
  *
- * Two ways to supply content:
- *  - pass `messages` directly (any pre-generated thread), or
- *  - pass deal context (`ticker`/`outcome`/`ratio`) and it builds one via
- *    sampleChat(seed, ...).
- *
- * Collapsible via native <details> (no JS).
+ * Lives strictly in the "community discussion — not editorial" zone.
+ * Collapsible via native <details>.
  */
 interface Props {
   seed: string; // stable key -> stable conversation
@@ -30,13 +26,13 @@ const messages =
   provided ?? sampleChat(seed, { ticker: ticker ?? 'this', outcome: outcome ?? 'unknown', ratio });
 ---
 
-<details class="group" open={open}>
+<details class="chatlog group" data-thread={seed} open={open}>
   <summary
     class="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-full border border-rule px-3 py-1 text-xs font-medium text-muted transition-colors hover:border-accent/50 hover:bg-accent/5 hover:text-accent [&::-webkit-details-marker]:hidden"
   >
     <span aria-hidden="true">💬</span>
     <span>{label}</span>
-    <span class="text-faint">· {messages.length}</span>
+    <span class="text-faint">· <span class="chat-count">{messages.length}</span></span>
     <span class="text-faint transition-transform group-open:rotate-90" aria-hidden="true">›</span>
   </summary>
 
@@ -47,13 +43,14 @@ const messages =
       </span>
       <span
         class="rounded-full border border-[var(--color-notice)]/50 px-1.5 py-0.5 text-[0.6rem] font-medium text-[var(--color-notice)]"
-        title="Fictional sample conversation — not real users"
+        title="Includes fictional sample comments to seed the conversation"
       >
-        illustrative sample
+        includes samples
       </span>
     </div>
 
-    <ul class="divide-y divide-rule">
+    {/* seed (sample) messages — rendered server-side */}
+    <ul class="chat-list divide-y divide-rule">
       {
         messages.map((m) => (
           <li class="flex gap-2.5 px-3 py-2.5">
@@ -62,6 +59,7 @@ const messages =
               <div class="flex items-baseline gap-2">
                 <span class="truncate text-sm font-medium text-ink">{m.author}</span>
                 <span class="text-[0.65rem] text-faint">{m.ago}</span>
+                <span class="rounded bg-rule px-1 text-[0.55rem] uppercase tracking-wide text-faint">sample</span>
               </div>
               <p class="text-sm leading-relaxed text-muted">{m.body}</p>
               {m.reactions && (
@@ -78,23 +76,139 @@ const messages =
           </li>
         ))
       }
+      {/* live comments get appended here by the script */}
     </ul>
 
-    {/* disabled composer — preview only */}
-    <div class="flex items-center gap-2 border-t border-rule px-3 py-2">
-      <input
-        type="text"
-        disabled
-        placeholder="Sign-in & live chat coming soon — sample preview"
-        class="flex-1 rounded-full border border-rule bg-paper-raised px-3 py-1.5 text-sm text-faint placeholder:text-faint"
-      />
-      <button
-        type="button"
-        disabled
-        class="rounded-full bg-rule px-3 py-1.5 text-xs font-medium text-faint"
-      >
-        Send
-      </button>
+    {/* composer — enabled for signed-in users, sign-in prompt otherwise */}
+    <div class="chat-composer border-t border-rule px-3 py-2">
+      <div class="chat-as hidden items-center gap-1.5 pb-1.5 text-[0.65rem] text-faint">
+        <span>commenting as</span>
+        <button type="button" class="chat-username font-semibold text-ink hover:text-accent" title="Click to change your display name"></button>
+      </div>
+      <div class="flex items-center gap-2">
+        <input
+          type="text"
+          class="chat-input flex-1 rounded-full border border-rule bg-paper-raised px-3 py-1.5 text-sm text-ink placeholder:text-faint"
+          placeholder="Sign in to join the conversation"
+          maxlength="800"
+          disabled
+        />
+        <button type="button" class="chat-send rounded-full bg-accent px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50" disabled>
+          Send
+        </button>
+      </div>
+      <p class="chat-note mt-1 text-[0.65rem] text-faint"></p>
     </div>
   </div>
 </details>
+
+<script>
+  import { supabase } from '../lib/supabase';
+  import { fetchComments, postComment, resolveUsername, setUsername, timeAgo } from '../lib/comments';
+
+  function esc(s: string) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+  function initials(name: string) {
+    return (name.replace(/[^a-z0-9]/gi, '').slice(0, 2) || '?').toUpperCase();
+  }
+
+  document.querySelectorAll<HTMLDetailsElement>('.chatlog').forEach((root) => {
+    const thread = root.dataset.thread!;
+    const list = root.querySelector<HTMLElement>('.chat-list')!;
+    const countEl = root.querySelector<HTMLElement>('.chat-count')!;
+    const asRow = root.querySelector<HTMLElement>('.chat-as')!;
+    const unameBtn = root.querySelector<HTMLButtonElement>('.chat-username')!;
+    const input = root.querySelector<HTMLInputElement>('.chat-input')!;
+    const send = root.querySelector<HTMLButtonElement>('.chat-send')!;
+    const note = root.querySelector<HTMLElement>('.chat-note')!;
+
+    let username = '';
+    let loaded = false;
+    const sampleCount = list.querySelectorAll('li').length;
+
+    function appendComment(c: { username: string; body: string; created_at: string }) {
+      const li = document.createElement('li');
+      li.className = 'flex gap-2.5 px-3 py-2.5';
+      li.innerHTML = `
+        <span class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-[0.6rem] font-semibold text-white">${initials(c.username)}</span>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-baseline gap-2">
+            <span class="truncate text-sm font-medium text-ink">${esc(c.username)}</span>
+            <span class="text-[0.65rem] text-faint">${timeAgo(c.created_at)}</span>
+          </div>
+          <p class="text-sm leading-relaxed text-ink">${esc(c.body)}</p>
+        </div>`;
+      list.appendChild(li);
+    }
+
+    async function loadOnce() {
+      if (loaded) return;
+      loaded = true;
+      const comments = await fetchComments(thread);
+      comments.forEach(appendComment);
+      countEl.textContent = String(sampleCount + comments.length);
+    }
+
+    // load real comments when the thread is opened (or immediately if open)
+    if (root.open) loadOnce();
+    root.addEventListener('toggle', () => root.open && loadOnce());
+
+    // composer state from session
+    async function applyAuth(user: any) {
+      if (user) {
+        username = resolveUsername(user);
+        asRow.classList.remove('hidden');
+        asRow.classList.add('flex');
+        unameBtn.textContent = username;
+        input.disabled = false;
+        send.disabled = false;
+        input.placeholder = 'Add a comment…';
+      } else {
+        asRow.classList.add('hidden');
+        input.disabled = true;
+        send.disabled = true;
+        input.placeholder = 'Sign in to join the conversation';
+      }
+    }
+    supabase.auth.getUser().then(({ data }) => applyAuth(data.user));
+    supabase.auth.onAuthStateChange((_e, s) => applyAuth(s?.user ?? null));
+
+    // change display name
+    unameBtn.addEventListener('click', async () => {
+      const next = prompt('Choose a display name:', username);
+      if (!next || !next.trim()) return;
+      const { error } = await setUsername(next);
+      if (!error) {
+        username = next.trim().slice(0, 24).replace(/\s+/g, '_');
+        unameBtn.textContent = username;
+      }
+    });
+
+    async function submit() {
+      const body = input.value;
+      if (!body.trim()) return;
+      send.disabled = true;
+      note.textContent = 'Posting…';
+      const res = await postComment(thread, body, username);
+      send.disabled = false;
+      if (!res.ok) {
+        note.textContent = res.message;
+        return;
+      }
+      appendComment(res.comment);
+      countEl.textContent = String(list.querySelectorAll('li').length);
+      input.value = '';
+      note.textContent = '';
+    }
+    send.addEventListener('click', submit);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submit();
+      }
+    });
+  });
+</script>
