@@ -56,3 +56,11 @@ export function userInitials(user: { email?: string | null; user_metadata?: Reco
   }
   return (user.email ?? '?')[0]!.toUpperCase();
 }
+
+/** Best available display name for a user. */
+export function userName(user: { email?: string | null; user_metadata?: Record<string, unknown> } | null): string {
+  if (!user) return '';
+  const m = user.user_metadata ?? {};
+  const full = ((m.full_name as string) || (m.name as string) || '').trim();
+  return full || (user.email ?? 'Account');
+}

@@ -1,0 +1,44 @@
+---
+import GoogleSignIn from './GoogleSignIn.astro';
+import NewsletterToggle from './NewsletterToggle.astro';
+
+/**
+ * Swaps the call-to-action based on auth state:
+ *  - signed OUT → "Join with Google" (sign-in)
+ *  - signed IN  → larger "Join Newsletter" sliding toggle
+ *
+ * Both render server-side; a small script reveals the right one once the
+ * session is known (NewsletterToggle ships hidden and is shown when signed in).
+ */
+interface Props {
+  label?: string;
+}
+const { label = 'Join with Google' } = Astro.props;
+---
+
+<div class="auth-cta flex justify-center">
+  <div class="auth-cta-out">
+    <GoogleSignIn label={label} />
+  </div>
+  <div class="auth-cta-in" hidden>
+    <NewsletterToggle />
+  </div>
+</div>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  function apply(signedIn: boolean) {
+    document.querySelectorAll<HTMLElement>('.auth-cta').forEach((root) => {
+      const out = root.querySelector<HTMLElement>('.auth-cta-out');
+      const inEl = root.querySelector<HTMLElement>('.auth-cta-in');
+      const toggle = root.querySelector<HTMLElement>('.newsletter-toggle');
+      if (out) out.hidden = signedIn;
+      if (inEl) inEl.hidden = !signedIn;
+      if (toggle) toggle.hidden = !signedIn; // it ships hidden by default
+    });
+  }
+
+  supabase.auth.getUser().then(({ data }) => apply(Boolean(data.user)));
+  supabase.auth.onAuthStateChange((_e, session) => apply(Boolean(session?.user)));
+</script>

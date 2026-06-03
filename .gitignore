@@ -27,3 +27,4 @@ pnpm-debug.log*
 # (candid strategy/ownership notes). Remove these lines to commit them.
 BUILD_PLAN.md
 CLAUDE.md
+SUPABASE_AUTH_SETUP.md

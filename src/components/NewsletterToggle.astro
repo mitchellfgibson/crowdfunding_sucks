@@ -1,0 +1,79 @@
+---
+/**
+ * "Join Newsletter" sliding toggle — shown only to signed-in users (the AuthCTA
+ * swaps the Google button for this once a session exists). The on/off state is
+ * stored on the user's Supabase metadata (newsletter_opt_in), so it persists
+ * across visits. ~40% larger than the standard button per design.
+ *
+ * No PII leaves Supabase; this is just a boolean preference on the user record.
+ */
+---
+
+<div class="newsletter-toggle inline-flex flex-col items-center gap-2" hidden>
+  <button
+    type="button"
+    role="switch"
+    aria-checked="false"
+    aria-label="Join the newsletter"
+    class="nl-switch group inline-flex items-center gap-3 rounded-full border border-rule bg-paper-raised px-6 py-3.5 text-lg font-semibold text-ink shadow-sm transition-all hover:shadow-md"
+  >
+    <span class="nl-label">Join Newsletter</span>
+    {/* track */}
+    <span class="nl-track relative inline-flex h-7 w-12 items-center rounded-full bg-rule transition-colors">
+      {/* knob */}
+      <span class="nl-knob absolute left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform"></span>
+    </span>
+  </button>
+  <p class="nl-note text-xs text-faint">Free. Unsubscribe anytime.</p>
+</div>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  document.querySelectorAll<HTMLElement>('.newsletter-toggle').forEach((root) => {
+    const btn = root.querySelector<HTMLButtonElement>('.nl-switch');
+    const track = root.querySelector<HTMLElement>('.nl-track');
+    const knob = root.querySelector<HTMLElement>('.nl-knob');
+    const label = root.querySelector<HTMLElement>('.nl-label');
+    const note = root.querySelector<HTMLElement>('.nl-note');
+    if (!btn || !track || !knob || !label || !note) return;
+    const els = { btn, track, knob, label, note };
+
+    const ON = 'var(--color-gain)';
+
+    function paint(on: boolean) {
+      els.btn.setAttribute('aria-checked', String(on));
+      els.track.style.background = on ? ON : '';
+      els.knob.style.transform = on ? 'translateX(20px)' : '';
+      els.label.textContent = on ? 'Subscribed' : 'Join Newsletter';
+    }
+
+    let current = false;
+    let busy = false;
+
+    // hydrate from the signed-in user's metadata
+    supabase.auth.getUser().then(({ data }) => {
+      current = Boolean(data.user?.user_metadata?.newsletter_opt_in);
+      paint(current);
+    });
+
+    btn.addEventListener('click', async () => {
+      if (busy) return;
+      busy = true;
+      const next = !current;
+      paint(next); // optimistic
+      els.note.textContent = next ? 'Subscribing…' : 'Updating…';
+      const { error } = await supabase.auth.updateUser({
+        data: { newsletter_opt_in: next },
+      });
+      busy = false;
+      if (error) {
+        paint(current); // revert
+        els.note.textContent = 'Could not update — try again.';
+        return;
+      }
+      current = next;
+      els.note.textContent = next ? "You're subscribed. Unsubscribe anytime." : 'Free. Unsubscribe anytime.';
+    });
+  });
+</script>

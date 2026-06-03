@@ -2,7 +2,7 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Container from '../components/Container.astro';
-import GoogleSignIn from '../components/GoogleSignIn.astro';
+import AuthCTA from '../components/AuthCTA.astro';
 import { withBase } from '../lib/url';
 import { publishers } from '../data/publishers';
 
@@ -87,7 +87,7 @@ const problems = [
       </ul>
 
       <div class="mt-12 flex justify-center">
-        <GoogleSignIn label="Join with Google" />
+        <AuthCTA label="Join with Google" />
       </div>
     </Container>
   </section>
@@ -167,7 +167,7 @@ const problems = [
         collectively, transparently, on the record.
       </p>
       <div class="mt-6 flex justify-center">
-        <GoogleSignIn label="Join with Google" />
+        <AuthCTA label="Join with Google" />
       </div>
     </div>
 
