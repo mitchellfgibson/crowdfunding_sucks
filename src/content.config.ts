@@ -109,6 +109,9 @@ const portals = defineCollection({
   schema: z.object({
     ...entityBase,
     url: z.string().url(),
+    // Optional local logo file in /public/logos/ (used when the favicon service
+    // has no usable icon for the domain).
+    logo: z.string().optional(),
     // Regulation framework(s) the platform operates under, factual.
     regulation: z.array(z.enum(['reg_cf', 'reg_a', 'reg_d', 'broker_dealer', 'other'])).default([]),
     // Coarse asset focus for grouping/filtering the directory.

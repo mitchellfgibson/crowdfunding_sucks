@@ -1,20 +1,23 @@
 ---
 import { monogram, avatarColor } from '../lib/handle';
+import { withBase } from '../lib/url';
 
 /**
- * A platform's logo, loaded at runtime from its own domain favicon (we already
- * store each portal's real URL in frontmatter). Nothing copyrighted is stored
- * in the repo — the icon is fetched live (nominative use). If the favicon fails
- * to load, an `onerror` handler removes the <img>, revealing a colored letter
- * monogram underneath as the fallback.
+ * A platform's logo. Priority:
+ *   1. an explicit local `logo` file under /public/logos/ (for sites whose
+ *      favicon service has no usable icon), then
+ *   2. the domain favicon loaded at runtime (nominative use; not stored), then
+ *   3. a colored letter-monogram fallback (shown underneath; revealed if the
+ *      <img> errors out).
  */
 interface Props {
   name: string;
   url: string;
+  logo?: string; // filename in /public/logos/, e.g. "startengine.png"
   size?: number;
   class?: string;
 }
-const { name, url, size = 40, class: className = '' } = Astro.props;
+const { name, url, logo, size = 40, class: className = '' } = Astro.props;
 
 let host = '';
 try {
@@ -22,8 +25,12 @@ try {
 } catch {
   host = '';
 }
-// DuckDuckGo's icon service is reliable and privacy-friendly.
-const favicon = host ? `https://icons.duckduckgo.com/ip3/${host}.ico` : '';
+// Local file wins; otherwise the DuckDuckGo icon service.
+const src = logo
+  ? withBase(`/logos/${logo}`)
+  : host
+    ? `https://icons.duckduckgo.com/ip3/${host}.ico`
+    : '';
 const bg = avatarColor(name);
 ---
 
@@ -35,9 +42,9 @@ const bg = avatarColor(name);
     {monogram(name)}
   </span>
   {
-    favicon && (
+    src && (
       <img
-        src={favicon}
+        src={src}
         alt={`${name} logo`}
         width={size}
         height={size}

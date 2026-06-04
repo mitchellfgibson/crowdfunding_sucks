@@ -40,18 +40,6 @@ export const PUBLISHERS_INTRO =
 
 export const publishers: Publisher[] = [
   {
-    name: 'Palm Beach Research Group',
-    url: 'https://palmbeachgroup.com',
-    description:
-      'Publisher known for promoting emerging technology, crypto, and venture-style investment opportunities through multiple newsletters.',
-    analysts: [
-      { name: 'Teeka Tiwari', focus: 'Crypto / digital assets' },
-      { name: 'Luke Lango', focus: 'Technology / AI / startups' },
-      { name: 'Andy Snyder', focus: 'Private deals / Reg A opportunities' },
-      { name: 'Graham Summers', focus: 'Macro / markets' },
-    ],
-  },
-  {
     name: 'Paradigm Press Group',
     url: 'https://paradigmpressgroup.com',
     description:
@@ -88,17 +76,6 @@ export const publishers: Publisher[] = [
       { name: 'Charles Mizrahi', focus: 'Growth stocks' },
       { name: 'Ted Bauman', focus: 'Macro / geopolitics' },
       { name: 'Jeff Yastine', focus: 'Global markets' },
-    ],
-  },
-  {
-    name: 'Casey Research',
-    url: 'https://caseyresearch.com',
-    description:
-      'Investment research firm specializing in natural resources, commodities, and global macro analysis.',
-    analysts: [
-      { name: 'Doug Casey', focus: 'Global macro / commodities' },
-      { name: 'Nick Giambruno', focus: 'Macro / geopolitics' },
-      { name: 'Marin Katusa', focus: 'Natural resources' },
     ],
   },
   {

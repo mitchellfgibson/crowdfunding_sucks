@@ -41,7 +41,7 @@ const host = new URL(d.url).host;
 
     <header class="mt-3 border-b-2 border-ink pb-5">
       <div class="flex flex-wrap items-center gap-3">
-        <PortalLogo name={d.name} url={d.url} size={48} />
+        <PortalLogo name={d.name} url={d.url} logo={d.logo} size={48} />
         <h1 class="font-serif text-3xl text-ink">{d.name}</h1>
         {
           d.status !== 'operating' && (

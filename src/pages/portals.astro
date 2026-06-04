@@ -58,7 +58,7 @@ const operating = portals.filter((p) => p.data.status === 'operating').length;
                 class="group flex flex-col rounded-xl border border-rule bg-paper-raised p-4 no-underline shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/5 hover:shadow-md"
               >
                 <div class="flex items-start gap-3">
-                  <PortalLogo name={p.data.name} url={p.data.url} size={40} />
+                  <PortalLogo name={p.data.name} url={p.data.url} logo={p.data.logo} size={40} />
                   <div class="min-w-0 flex-1">
                     <h3 class="font-semibold text-ink group-hover:text-accent">{p.data.name}</h3>
                   </div>
