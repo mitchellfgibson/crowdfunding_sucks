@@ -10,107 +10,158 @@ import ChatLog from '../../components/ChatLog.astro';
 import { withBase } from '../../lib/url';
 import { summarize, byNewest, fmtPct, fmtRate } from '../../lib/performance';
 import { bareHandle, monthYear } from '../../lib/handle';
+import { publishers, publisherSlug } from '../../data/publishers';
 
 /**
- * Forum THREAD view for a single tracked account: the dated, cited
- * recommendations as classic two-column forum posts, then a discussion thread.
- * One static page per account in the gurus collection.
+ * Analyst / account profile. Generates one page per board entry — every real
+ * analyst (from publishers data) AND every fictional sample account (gurus
+ * collection). Real analysts with no sourced calls render an honest "Unrated"
+ * state; samples render their forum-post calls + computed stats. Discussion
+ * (ChatLog) on both.
  */
 export const getStaticPaths = (async () => {
+  const paths: { params: { outlet: string }; props: Record<string, unknown> }[] = [];
+
+  // real analysts
+  for (const pub of publishers) {
+    for (const a of pub.analysts) {
+      const slug = a.slug ?? `${publisherSlug(pub.name)}-${publisherSlug(a.name)}`;
+      paths.push({
+        params: { outlet: slug },
+        props: {
+          kind: 'analyst',
+          name: a.name,
+          focus: a.focus,
+          publisher: pub.name,
+          url: pub.url,
+          recs: (a.recommendations ?? []) as unknown[],
+        },
+      });
+    }
+  }
+
+  // fictional sample accounts
   const gurus = await getCollection('gurus');
-  return gurus.map((g) => ({
-    params: { outlet: g.data.slug ?? g.id },
-    props: { guru: g },
-  }));
+  for (const g of gurus) {
+    paths.push({
+      params: { outlet: g.data.slug ?? g.id },
+      props: {
+        kind: 'sample',
+        name: g.data.name,
+        summary: g.data.summary,
+        links: g.data.links,
+        recs: g.data.recommendations,
+      },
+    });
+  }
+
+  return paths;
 }) satisfies GetStaticPaths;
 
-const { guru } = Astro.props;
-const data = guru.data;
-const slug = data.slug ?? guru.id;
-const perf = summarize(data.recommendations);
-const posts = byNewest(data.recommendations);
+const { kind, name, focus, publisher, url, summary, links, recs } = Astro.props as {
+  kind: 'analyst' | 'sample';
+  name: string;
+  focus?: string;
+  publisher?: string;
+  url?: string;
+  summary?: string;
+  links?: { label: string; url: string }[];
+  recs: any[];
+};
+
+const slug = Astro.params.outlet!;
+const perf = summarize(recs);
+const posts = byNewest(recs);
+const displayName = kind === 'sample' ? bareHandle(name) : name;
+const rated = perf.scored > 0;
 ---
 
 <BaseLayout
-  title={`${bareHandle(data.name)} — Performance Board`}
-  description={`Sourced recommendation track record and discussion for ${bareHandle(data.name)}.`}
+  title={`${displayName} — Performance Board`}
+  description={`Sourced recommendation track record and discussion for ${displayName}.`}
 >
   <Container class="py-10">
-    {/* breadcrumb */}
     <nav class="text-xs text-faint" aria-label="Breadcrumb">
       <a href={withBase('/')} class="text-muted no-underline hover:underline">Home</a>
       <span class="mx-1.5">›</span>
       <a href={withBase('/community/')} class="text-muted no-underline hover:underline">Performance Board</a>
       <span class="mx-1.5">›</span>
-      <span class="text-ink">{bareHandle(data.name)}</span>
+      <span class="text-ink">{displayName}</span>
     </nav>
 
-    {/* thread header / account card */}
     <header class="mt-3 border-b-2 border-ink pb-5">
       <div class="flex items-start gap-4">
-        <Avatar name={data.name} size={56} />
+        <Avatar name={name} size={56} />
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-2">
-            <h1 class="font-serif text-2xl text-ink">{bareHandle(data.name)}</h1>
-            {data.draft && (
+            <h1 class="font-serif text-2xl text-ink">{displayName}</h1>
+            {kind === 'sample' && (
               <span class="rounded-full border border-[var(--color-notice)]/50 px-2 py-0.5 text-xs font-medium text-[var(--color-notice)]">
                 Illustrative sample
               </span>
             )}
+            {kind === 'analyst' && !rated && (
+              <span class="rounded-full border border-rule px-2 py-0.5 text-xs font-medium text-faint">Unrated</span>
+            )}
           </div>
-          <p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted">{data.summary}</p>
+
+          {
+            kind === 'analyst' ? (
+              <p class="mt-1 text-sm leading-relaxed text-muted">
+                {focus}{publisher && <> · <a href={withBase(`/gurus/${publisherSlug(publisher)}/`)} class="text-accent underline">{publisher}</a></>}
+              </p>
+            ) : (
+              <p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted">{summary}</p>
+            )
+          }
+
           <p class="mt-1.5 text-xs text-faint">
-            {perf.firstDate && <>Posting since {monthYear(perf.firstDate)} · </>}
-            {data.links?.[0] && (
-              <a href={data.links[0].url} rel="nofollow noopener" class="text-accent underline">
-                {data.links[0].label}
-              </a>
+            {perf.firstDate && <>Calls since {monthYear(perf.firstDate)} · </>}
+            {kind === 'analyst' && url && (
+              <a href={url} target="_blank" rel="nofollow noopener" class="text-accent underline">{new URL(url).host.replace(/^www\./, '')} ↗</a>
+            )}
+            {kind === 'sample' && links?.[0] && (
+              <a href={links[0].url} rel="nofollow noopener" class="text-accent underline">{links[0].label}</a>
             )}
           </p>
         </div>
       </div>
 
-      {/* track-record stat strip */}
-      <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
-        <PerfStat
-          label="Avg return"
-          value={fmtPct(perf.avgReturn)}
-          tone={perf.avgReturn === null ? 'neutral' : perf.avgReturn >= 0 ? 'gain' : 'loss'}
-        />
-        <PerfStat label="Median" value={fmtPct(perf.medianReturn)} />
-        <PerfStat
-          label="Best"
-          value={fmtPct(perf.bestReturn)}
-          tone={perf.bestReturn !== null && perf.bestReturn >= 0 ? 'gain' : 'neutral'}
-        />
-        <PerfStat
-          label="Worst"
-          value={fmtPct(perf.worstReturn)}
-          tone={perf.worstReturn !== null && perf.worstReturn < 0 ? 'loss' : 'neutral'}
-        />
-        <PerfStat label="Win rate" value={fmtRate(perf.winRate)} />
-        <PerfStat label="Picks" value={`${perf.scored}/${perf.total}`} sub="scored / total" />
-      </div>
-    </header>
-
-    {/* the thread: one forum post per cited recommendation */}
-    <section class="mt-6 overflow-hidden rounded-lg border border-rule">
-      <div class="border-b border-rule bg-paper-raised px-4 py-2 text-xs font-semibold uppercase tracking-wide text-faint">
-        Recommendations · {posts.length} {posts.length === 1 ? 'call' : 'calls'}, newest first
-      </div>
       {
-        posts.map((rec, i) => (
-          <ForumPost rec={rec} handle={data.name} postNo={i + 1} slug={slug} since={perf.firstDate} />
-        ))
-      }
-      {
-        posts.length === 0 && (
-          <p class="px-4 py-8 text-sm text-muted">No recommendations on file yet.</p>
+        rated ? (
+          <div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <PerfStat label="Avg return" value={fmtPct(perf.avgReturn)} tone={perf.avgReturn === null ? 'neutral' : perf.avgReturn >= 0 ? 'gain' : 'loss'} />
+            <PerfStat label="Median" value={fmtPct(perf.medianReturn)} />
+            <PerfStat label="Best" value={fmtPct(perf.bestReturn)} tone={perf.bestReturn !== null && perf.bestReturn >= 0 ? 'gain' : 'neutral'} />
+            <PerfStat label="Worst" value={fmtPct(perf.worstReturn)} tone={perf.worstReturn !== null && perf.worstReturn < 0 ? 'loss' : 'neutral'} />
+            <PerfStat label="Win rate" value={fmtRate(perf.winRate)} />
+            <PerfStat label="Picks" value={`${perf.scored}/${perf.total}`} sub="scored / total" />
+          </div>
+        ) : (
+          <p class="mt-4 rounded-lg border border-dashed border-rule bg-paper-raised px-4 py-3 text-sm leading-relaxed text-muted">
+            <strong class="text-ink">Unrated.</strong> No sourced recommendations are on
+            file for {displayName} yet, so there is no computed track record. A score
+            appears here once cited calls exist — we don’t invent them.
+            <a href={withBase('/methodology/')} class="text-accent underline">How scoring works →</a>
+          </p>
         )
       }
-    </section>
+    </header>
 
-    {/* editorial / community boundary (rule 5) */}
+    {
+      posts.length > 0 && (
+        <section class="mt-6 overflow-hidden rounded-lg border border-rule">
+          <div class="border-b border-rule bg-paper-raised px-4 py-2 text-xs font-semibold uppercase tracking-wide text-faint">
+            Recommendations · {posts.length} {posts.length === 1 ? 'call' : 'calls'}, newest first
+          </div>
+          {posts.map((rec, i) => (
+            <ForumPost rec={rec} handle={name} postNo={i + 1} slug={slug} since={perf.firstDate} />
+          ))}
+        </section>
+      )
+    }
+
+    {/* editorial / community boundary */}
     <div class="mt-8">
       <div class="flex items-center gap-3">
         <span class="h-px flex-1 bg-rule"></span>
@@ -119,20 +170,18 @@ const posts = byNewest(data.recommendations);
         </span>
         <span class="h-px flex-1 bg-rule"></span>
       </div>
-      <p class="mt-3 text-sm text-muted">
-        General chat for this account. To talk about a specific deal, use its
-        <strong class="font-medium text-ink">💬 Discuss</strong> button above.
-      </p>
+      <p class="mt-3 text-sm text-muted">General discussion for {displayName}.</p>
       <div class="mt-4">
-        <ChatLog
-          seed={`${slug}/general`}
-          ticker={bareHandle(data.name)}
-          outcome="active"
-          ratio={perf.avgReturn}
-          label="Open general chat"
-          open={true}
-        />
+        <ChatLog seed={`${slug}/general`} messages={undefined} ticker={displayName} outcome="active" ratio={perf.avgReturn} label="Open discussion" open={true} />
       </div>
     </div>
+
+    <p class="mt-10 border-t border-rule pt-4 text-xs leading-relaxed text-faint">
+      Computed from cited facts via the
+      <a href={withBase('/methodology/')} class="text-muted underline">methodology</a> —
+      not investment advice. Profiled parties may use the
+      <a href={withBase('/right-of-reply/')} class="text-muted underline">right of reply</a>.
+      <a href={withBase('/community/')} class="text-muted underline">← All analysts</a>
+    </p>
   </Container>
 </BaseLayout>

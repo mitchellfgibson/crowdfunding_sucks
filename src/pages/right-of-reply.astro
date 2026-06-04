@@ -1,9 +1,68 @@
 ---
-import Placeholder from '../components/Placeholder.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Container from '../components/Container.astro';
+import { withBase } from '../lib/url';
+
+/**
+ * Right-of-reply — the recourse the standing footer promises (BUILD_PLAN §2.5).
+ * Especially load-bearing now that real, named accounts can carry computed
+ * scores. Describes how a profiled party responds, corrects, or adds context.
+ */
 ---
 
-<Placeholder
+<BaseLayout
   title="Right of reply"
-  phase="Coming in Phase 2"
-  blurb="A process for any profiled person or platform to respond to, correct, or add context to what appears about them. Details will be published before any profiles go live."
-/>
+  description="How any profiled person or outlet can respond to, correct, or add context to what appears about them."
+>
+  <Container width="prose" class="py-12">
+    <p class="text-sm font-semibold uppercase tracking-wide text-accent">Right of reply</p>
+    <h1 class="mt-2 font-serif text-3xl text-ink sm:text-4xl">If you’re profiled here</h1>
+
+    <p class="mt-6 text-lg leading-relaxed text-muted">
+      This site reports facts that can be cited and figures that are computed
+      from them. If you are an analyst, publisher, platform, or company that
+      appears here, you have a standing right to respond, correct the record, or
+      add context — and we will act on legitimate requests promptly.
+    </p>
+
+    <h2 class="mt-12 font-serif text-2xl text-ink">What you can ask for</h2>
+    <ul class="mt-4 space-y-3 text-muted">
+      <li><strong class="text-ink">Correction.</strong> If a sourced datum is wrong — a date, a valuation, an outcome — tell us what’s inaccurate and point to the correct source. We fix or remove it.</li>
+      <li><strong class="text-ink">Context.</strong> Submit a short statement to be shown alongside your profile. Your words, attributed to you.</li>
+      <li><strong class="text-ink">Source dispute.</strong> If you believe a cited source is unreliable or misread, flag it. A datum that can’t stand behind a source comes down.</li>
+      <li><strong class="text-ink">Removal review.</strong> Request review of a specific item. We don’t remove cited public facts on request alone, but we will re-check sourcing and accuracy.</li>
+    </ul>
+
+    <h2 class="mt-12 font-serif text-2xl text-ink">How it works</h2>
+    <ol class="mt-4 space-y-3 text-ink">
+      <li class="flex gap-3"><span class="font-mono text-accent">1.</span><span>Send your request to the contact below, identifying the profile and the specific item.</span></li>
+      <li class="flex gap-3"><span class="font-mono text-accent">2.</span><span>We acknowledge receipt and review the sourcing behind the item in question.</span></li>
+      <li class="flex gap-3"><span class="font-mono text-accent">3.</span><span>We correct or remove anything that isn’t accurately sourced, and publish your statement of context if you’ve provided one.</span></li>
+    </ol>
+
+    <h2 class="mt-12 font-serif text-2xl text-ink">What this is not</h2>
+    <p class="mt-3 leading-relaxed text-muted">
+      Right of reply covers the <em>editorial</em> layer — the cited facts and
+      computed figures. It is not a way to remove community opinion in the
+      discussion section, which is separate, clearly labeled, and not editorial
+      content. Genuinely abusive or unlawful comments can be reported via
+      <a href={withBase('/contact/')} class="text-accent underline">contact</a>.
+    </p>
+
+    <div class="mt-12 rounded-lg border border-rule bg-paper-raised p-5">
+      <p class="text-sm font-semibold text-ink">Submit a right-of-reply request</p>
+      <p class="mt-1.5 text-sm leading-relaxed text-muted">
+        Use the <a href={withBase('/contact/')} class="text-accent underline">contact page</a>
+        and include “Right of reply” plus the profile name and the specific item.
+        A dedicated submission form is coming; until then, contact reaches us
+        directly.
+      </p>
+    </div>
+
+    <p class="mt-10 text-xs leading-relaxed text-faint">
+      Nothing here is legal advice. This process is offered in good faith and
+      sits alongside, not instead of, any legal rights you may have.
+      <a href={withBase('/methodology/')} class="text-muted underline">See how scores are computed →</a>
+    </p>
+  </Container>
+</BaseLayout>

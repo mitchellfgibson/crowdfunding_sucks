@@ -10,6 +10,15 @@
 export interface Analyst {
   name: string;
   focus: string;
+  /** Optional URL-override for this analyst's board route. */
+  slug?: string;
+  /**
+   * Sourced recommendations attributed to this analyst. Empty by default —
+   * a real analyst stays "Unrated" until cited calls are added here. Shape
+   * matches the gurus-collection recommendation schema (sources REQUIRED).
+   * Never fabricate these for a real person.
+   */
+  recommendations?: unknown[];
 }
 
 export interface Publisher {
