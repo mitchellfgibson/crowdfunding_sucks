@@ -112,6 +112,21 @@ const isActive = (href: string) => path === href || path.startsWith(href);
               </div>
             </div>
 
+            {/* updates preference — cycles Off / Newsletter / Newsletter + emails */}
+            <div class="border-b border-rule px-4 py-3">
+              <p class="text-[0.6rem] font-semibold uppercase tracking-wide text-faint">Updates</p>
+              <button
+                id="updates-toggle"
+                type="button"
+                class="mt-1.5 inline-flex items-center gap-2 rounded-full border border-rule px-3 py-1 text-xs font-medium text-muted transition-colors hover:border-accent/50"
+                aria-label="Cycle update preferences"
+                title="Click to cycle: off → newsletter → newsletter + emails"
+              >
+                <span id="updates-checks" class="inline-flex min-w-[1.4rem] justify-center font-semibold text-[var(--color-gain)]"></span>
+                <span id="updates-label"></span>
+              </button>
+            </div>
+
             <button
               id="account-signout"
               type="button"
@@ -151,6 +166,13 @@ const isActive = (href: string) => path === href || path.startsWith(href);
   const unCancel = document.getElementById('username-cancel');
   const unNote = document.getElementById('username-note');
 
+  // updates preference (0 = off, 1 = newsletter, 2 = newsletter + emails)
+  const updBtn = document.getElementById('updates-toggle');
+  const updChecks = document.getElementById('updates-checks');
+  const updLabel = document.getElementById('updates-label');
+  let updLevel = 0;
+  let updBusy = false;
+
   type U = Parameters<typeof userInitials>[0];
   let currentUsername = '';
 
@@ -178,6 +200,11 @@ const isActive = (href: string) => path === href || path.startsWith(href);
       currentUsername = resolveUsername(user);
       if (unValue) unValue.textContent = currentUsername;
       showUsernameView();
+
+      const m = user.user_metadata ?? {};
+      updLevel = m.emails_opt_in ? 2 : m.newsletter_opt_in ? 1 : 0;
+      paintUpdates();
+
       menu.classList.remove('hidden');
     } else {
       menu.classList.add('hidden');
@@ -245,6 +272,33 @@ const isActive = (href: string) => path === href || path.startsWith(href);
       e.preventDefault();
       e.stopPropagation(); // cancel the edit without also closing the dropdown
       showUsernameView();
+    }
+  });
+
+  // --- updates preference (Off / Newsletter / Newsletter + emails) ---
+  const UPD_LABELS = ['Off', 'Newsletter', 'Newsletter + emails'];
+  function paintUpdates() {
+    if (updChecks) updChecks.textContent = '✓'.repeat(updLevel);
+    if (updLabel) updLabel.textContent = UPD_LABELS[updLevel];
+    updBtn?.setAttribute('aria-label', `Updates: ${UPD_LABELS[updLevel]} (click to change)`);
+  }
+
+  updBtn?.addEventListener('click', async () => {
+    if (updBusy) return;
+    updBusy = true;
+    const prev = updLevel;
+    updLevel = (updLevel + 1) % 3; // 0 -> 1 -> 2 -> 0
+    paintUpdates(); // optimistic
+    const { error } = await supabase.auth.updateUser({
+      data: {
+        newsletter_opt_in: updLevel >= 1,
+        emails_opt_in: updLevel >= 2,
+      },
+    });
+    updBusy = false;
+    if (error) {
+      updLevel = prev; // revert
+      paintUpdates();
     }
   });
 </script>
