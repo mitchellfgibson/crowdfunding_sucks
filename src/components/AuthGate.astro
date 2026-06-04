@@ -1,0 +1,71 @@
+---
+import GoogleSignIn from './GoogleSignIn.astro';
+
+/**
+ * Gates its slotted content behind sign-in. By default the content is blurred
+ * and non-interactive with a sign-in overlay on top; a script removes the gate
+ * (unblurs + drops the overlay) once a Supabase session exists.
+ *
+ * Note: this is a client-side UX gate, not hard security — the markup is still
+ * in the page source. Fine for "log in to view the deals" on public sample
+ * data; anything truly private must be enforced server-side / via RLS.
+ */
+interface Props {
+  title?: string;
+  blurb?: string;
+}
+const {
+  title = 'Sign in to view deals',
+  blurb = 'Create a free account or sign in to browse open deals and participate.',
+} = Astro.props;
+---
+
+<div class="authgate relative" data-locked="true">
+  {/* gated content (blurred + inert until unlocked) */}
+  <div class="authgate-content pointer-events-none select-none blur-sm">
+    <slot />
+  </div>
+
+  {/* overlay */}
+  <div
+    class="authgate-overlay absolute inset-0 z-20 flex items-start justify-center pt-16"
+  >
+    <div class="mx-4 max-w-sm rounded-2xl border border-rule bg-paper-raised p-6 text-center shadow-xl">
+      <div class="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-accent/10 text-accent">
+        {/* lock icon */}
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="1.8" />
+          <path d="M8 11V8a4 4 0 1 1 8 0v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+      </div>
+      <h2 class="mt-3 font-serif text-xl text-ink">{title}</h2>
+      <p class="mt-1.5 text-sm leading-relaxed text-muted">{blurb}</p>
+      <div class="mt-5 flex justify-center">
+        <GoogleSignIn label="Sign in with Google" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { supabase } from '../lib/supabase';
+
+  function apply(signedIn: boolean) {
+    document.querySelectorAll<HTMLElement>('.authgate').forEach((gate) => {
+      const content = gate.querySelector<HTMLElement>('.authgate-content');
+      const overlay = gate.querySelector<HTMLElement>('.authgate-overlay');
+      if (signedIn) {
+        gate.dataset.locked = 'false';
+        content?.classList.remove('pointer-events-none', 'select-none', 'blur-sm');
+        overlay?.classList.add('hidden');
+      } else {
+        gate.dataset.locked = 'true';
+        content?.classList.add('pointer-events-none', 'select-none', 'blur-sm');
+        overlay?.classList.remove('hidden');
+      }
+    });
+  }
+
+  supabase.auth.getUser().then(({ data }) => apply(Boolean(data.user)));
+  supabase.auth.onAuthStateChange((_e, session) => apply(Boolean(session?.user)));
+</script>

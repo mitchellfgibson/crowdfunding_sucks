@@ -4,6 +4,7 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Container from '../components/Container.astro';
 import Avatar from '../components/Avatar.astro';
 import ParticipateButton from '../components/ParticipateButton.astro';
+import AuthGate from '../components/AuthGate.astro';
 import { withBase } from '../lib/url';
 
 /**
@@ -59,6 +60,10 @@ const pct = (raised?: number, target?: number) =>
       )
     }
 
+    <AuthGate
+      title="Sign in to view open deals"
+      blurb="Create a free account or sign in to browse open deals and participate."
+    >
     <div class="mt-8 grid gap-4 sm:grid-cols-2">
       {
         deals.map((deal) => {
@@ -145,6 +150,7 @@ const pct = (raised?: number, target?: number) =>
         )
       }
     </div>
+    </AuthGate>
 
     <p class="mt-12 border-t border-rule pt-4 text-xs leading-relaxed text-faint">
       Not investment advice and not an offer to sell or a solicitation to buy any
