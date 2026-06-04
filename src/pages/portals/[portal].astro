@@ -68,13 +68,19 @@ const host = new URL(d.url).host;
             </span>
           )
         }
+      </div>
+
+      <div class="mt-5 flex flex-wrap items-center gap-3">
         <a
           href={d.url}
+          target="_blank"
           rel="nofollow noopener"
-          class="rounded-full border border-rule px-2.5 py-0.5 text-xs font-medium text-accent no-underline hover:bg-accent/5"
+          class="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-semibold text-white no-underline transition-opacity hover:opacity-90"
         >
-          {host} ↗
+          Visit {d.name}
+          <span aria-hidden="true">↗</span>
         </a>
+        <span class="text-xs text-faint">{host}</span>
       </div>
     </header>
 
