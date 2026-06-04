@@ -80,6 +80,38 @@ const isActive = (href: string) => path === href || path.startsWith(href);
               <p id="account-name" class="truncate text-sm font-semibold text-ink"></p>
               <p id="account-email" class="truncate text-xs text-faint"></p>
             </div>
+
+            {/* display name (username) — view + inline edit */}
+            <div class="border-b border-rule px-4 py-3">
+              <p class="text-[0.6rem] font-semibold uppercase tracking-wide text-faint">Display name</p>
+
+              <div id="username-view" class="mt-1 flex items-center justify-between gap-2">
+                <span id="username-value" class="truncate text-sm text-ink"></span>
+                <button
+                  id="username-edit"
+                  type="button"
+                  class="shrink-0 text-xs font-medium text-accent hover:underline"
+                >
+                  Edit
+                </button>
+              </div>
+
+              <div id="username-form" class="mt-1 hidden">
+                <input
+                  id="username-input"
+                  type="text"
+                  maxlength="24"
+                  class="w-full rounded-md border border-rule bg-paper px-2 py-1 text-sm text-ink focus:border-accent focus:outline-none"
+                  placeholder="your_handle"
+                />
+                <div class="mt-1.5 flex items-center gap-2">
+                  <button id="username-save" type="button" class="rounded-md bg-accent px-2.5 py-1 text-xs font-semibold text-white hover:opacity-90">Save</button>
+                  <button id="username-cancel" type="button" class="text-xs text-muted hover:text-ink">Cancel</button>
+                  <span id="username-note" class="text-[0.65rem] text-faint"></span>
+                </div>
+              </div>
+            </div>
+
             <button
               id="account-signout"
               type="button"
@@ -97,6 +129,7 @@ const isActive = (href: string) => path === href || path.startsWith(href);
 
 <script>
   import { supabase, userInitials, userName } from '../lib/supabase';
+  import { resolveUsername, setUsername } from '../lib/comments';
   import { withBase } from '../lib/url';
 
   const menu = document.getElementById('account-menu');
@@ -108,7 +141,30 @@ const isActive = (href: string) => path === href || path.startsWith(href);
   const emailEl = document.getElementById('account-email');
   const signoutBtn = document.getElementById('account-signout');
 
+  // username view/edit
+  const unView = document.getElementById('username-view');
+  const unValue = document.getElementById('username-value');
+  const unEditBtn = document.getElementById('username-edit');
+  const unForm = document.getElementById('username-form');
+  const unInput = document.getElementById('username-input') as HTMLInputElement | null;
+  const unSave = document.getElementById('username-save');
+  const unCancel = document.getElementById('username-cancel');
+  const unNote = document.getElementById('username-note');
+
   type U = Parameters<typeof userInitials>[0];
+  let currentUsername = '';
+
+  function showUsernameView() {
+    unForm?.classList.add('hidden');
+    unView?.classList.remove('hidden');
+    if (unNote) unNote.textContent = '';
+  }
+  function showUsernameForm() {
+    if (unInput) unInput.value = currentUsername;
+    unView?.classList.add('hidden');
+    unForm?.classList.remove('hidden');
+    unInput?.focus();
+  }
 
   function render(user: U) {
     if (!menu) return;
@@ -119,6 +175,9 @@ const isActive = (href: string) => path === href || path.startsWith(href);
       if (shortnameEl) shortnameEl.textContent = first;
       if (nameEl) nameEl.textContent = name;
       if (emailEl) emailEl.textContent = user.email ?? '';
+      currentUsername = resolveUsername(user);
+      if (unValue) unValue.textContent = currentUsername;
+      showUsernameView();
       menu.classList.remove('hidden');
     } else {
       menu.classList.add('hidden');
@@ -152,5 +211,40 @@ const isActive = (href: string) => path === href || path.startsWith(href);
   signoutBtn?.addEventListener('click', async () => {
     await supabase.auth.signOut();
     window.location.replace(withBase('/'));
+  });
+
+  // --- username editing ---
+  unEditBtn?.addEventListener('click', showUsernameForm);
+  unCancel?.addEventListener('click', showUsernameView);
+
+  async function saveUsername() {
+    const next = (unInput?.value ?? '').trim();
+    if (!next) {
+      if (unNote) unNote.textContent = 'Enter a name.';
+      return;
+    }
+    if (unSave) (unSave as HTMLButtonElement).disabled = true;
+    if (unNote) unNote.textContent = 'Saving…';
+    const { error } = await setUsername(next);
+    if (unSave) (unSave as HTMLButtonElement).disabled = false;
+    if (error) {
+      if (unNote) unNote.textContent = 'Could not save.';
+      return;
+    }
+    currentUsername = next.slice(0, 24).replace(/\s+/g, '_');
+    if (unValue) unValue.textContent = currentUsername;
+    showUsernameView();
+  }
+
+  unSave?.addEventListener('click', saveUsername);
+  unInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      saveUsername();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation(); // cancel the edit without also closing the dropdown
+      showUsernameView();
+    }
   });
 </script>
