@@ -48,7 +48,7 @@ const totalAnalysts = publishers.reduce((n, p) => n + p.analysts.length, 0);
             class="group block rounded-xl border border-rule bg-paper-raised p-5 no-underline shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/5 hover:shadow-md"
           >
             <div class="flex items-start gap-3">
-              <PortalLogo name={pub.name} url={pub.url} size={44} />
+              <PortalLogo name={pub.name} url={pub.url} logo={pub.logo} size={44} />
               <div class="min-w-0">
                 <h2 class="font-serif text-xl text-ink group-hover:text-accent">{pub.name}</h2>
                 <p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted">{pub.description}</p>

@@ -15,6 +15,7 @@ export interface Analyst {
 export interface Publisher {
   name: string;
   url: string; // official site (used for the logo favicon + a reference link)
+  logo?: string; // optional local logo file in /public/logos/ (overrides favicon)
   description: string; // factual, as written by the source
   analysts: Analyst[];
 }
@@ -81,6 +82,7 @@ export const publishers: Publisher[] = [
   {
     name: 'Angel Publishing',
     url: 'https://angelpub.com',
+    logo: 'angel-publishing.jpg',
     description:
       'Financial publisher covering alternative investments, microcaps, and options strategies.',
     analysts: [
