@@ -3,54 +3,76 @@ import BaseLayout from '../layouts/BaseLayout.astro';
 import Container from '../components/Container.astro';
 import Avatar from '../components/Avatar.astro';
 import PortalLogo from '../components/PortalLogo.astro';
+import ReturnFigure from '../components/ReturnFigure.astro';
+import ChatLog from '../components/ChatLog.astro';
 import { withBase } from '../lib/url';
-import { publishers, publisherSlug, PUBLISHERS_INTRO, PUBLISHERS_SOURCE } from '../data/publishers';
+import { publishers, publisherSlug, PUBLISHERS_SOURCE } from '../data/publishers';
+import { buildBoard } from '../lib/board';
 
 /**
- * Publisher / analyst directory, sourced from crowdfundingsucks.com/gurus.
- * FACTS ONLY — name, publisher, focus area, with a citation. No track-record
- * numbers, no scoring, no opinion (BUILD_PLAN §6.3: named individuals are
- * reference-only until a sourced-recommendation methodology exists).
+ * Publishers & Performance — the unified board. Publishers list their analysts;
+ * each analyst is a clickable row linking to their individual profile under
+ * /community/[slug] (calls + computed score + discussion). Real analysts with
+ * no sourced calls show "Unrated" — never an invented score. A site-wide
+ * community chat sits at the bottom.
  */
 const totalAnalysts = publishers.reduce((n, p) => n + p.analysts.length, 0);
+
+// Map each analyst (by slug) to its computed performance for badges.
+const board = await buildBoard();
+const perfBySlug = new Map(
+  [...board.ranked, ...board.unrated].map((e) => [e.slug, e]),
+);
+const analystSlug = (pubName: string, aName: string, override?: string) =>
+  override ?? `${publisherSlug(pubName)}-${publisherSlug(aName)}`;
 ---
 
 <BaseLayout
-  title="Publishers & Gurus"
-  description="A sourced directory of financial publishers promoting startup, Reg CF, and Reg A deals, and the analysts writing under each."
+  title="Publishers & Performance"
+  description="Financial publishers and their analysts, ranked by the computed return of their sourced recommendations."
 >
   <Container class="py-10">
     <header class="max-w-3xl">
-      <p class="text-sm font-semibold uppercase tracking-wide text-accent">Directory</p>
-      <h1 class="mt-2 text-3xl font-semibold text-ink sm:text-4xl">Publishers &amp; Gurus</h1>
-      <p class="mt-4 text-lg leading-relaxed text-muted">{PUBLISHERS_INTRO}</p>
+      <p class="text-sm font-semibold uppercase tracking-wide text-accent">Performance</p>
+      <h1 class="mt-2 text-3xl font-semibold text-ink sm:text-4xl">Publishers &amp; Performance</h1>
+      <p class="mt-4 text-lg leading-relaxed text-muted">
+        The newsletter publishers and analysts shaping crowdfunding — and how
+        their calls actually played out. Click any analyst to see their dated,
+        sourced recommendations, a computed track record, and the discussion.
+      </p>
       <p class="mt-3 text-sm text-faint">
-        {publishers.length} publishers · {totalAnalysts} analysts tracked.
+        {publishers.length} publishers · {totalAnalysts} analysts · {board.ratedCount} rated.
+        <a href={withBase('/methodology/')} class="text-muted underline">How scoring works →</a>
       </p>
     </header>
 
-    {/* reference-only notice — no performance claims */}
-    <div
-      role="note"
-      class="mt-6 rounded-md border border-[var(--color-notice)]/40 bg-[var(--color-notice)]/10 px-4 py-3 text-sm leading-relaxed text-[var(--color-notice)]"
-    >
-      <strong>Reference directory only.</strong> This lists who publishes and what
-      they cover. No track records, returns, or performance ratings are shown —
-      those appear only when individual recommendations can be matched to
-      publicly verifiable outcomes, with sources.
-    </div>
+    {
+      board.ratedCount === 0 && (
+        <div
+          role="note"
+          class="mt-6 rounded-md border border-rule bg-paper-raised px-4 py-3 text-sm leading-relaxed text-muted"
+        >
+          <strong class="text-ink">Scores appear as calls are sourced.</strong> An
+          analyst is rated only once a recommendation with a verifiable outcome is
+          on file — we don’t invent calls for real people. Until then they’re
+          listed as <strong>Unrated</strong>.
+        </div>
+      )
+    }
 
     <div class="mt-8 space-y-4">
       {
         publishers.map((pub) => (
-          <a
-            href={withBase(`/gurus/${publisherSlug(pub.name)}/`)}
-            class="group block rounded-xl border border-rule bg-paper-raised p-5 no-underline shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/5 hover:shadow-md"
-          >
+          <section class="rounded-xl border border-rule bg-paper-raised p-5 shadow-sm">
             <div class="flex items-start gap-3">
               <PortalLogo name={pub.name} url={pub.url} logo={pub.logo} size={44} />
               <div class="min-w-0">
-                <h2 class="font-serif text-xl text-ink group-hover:text-accent">{pub.name}</h2>
+                <a
+                  href={withBase(`/gurus/${publisherSlug(pub.name)}/`)}
+                  class="font-serif text-xl text-ink no-underline hover:text-accent"
+                >
+                  {pub.name}
+                </a>
                 <p class="mt-1 max-w-2xl text-sm leading-relaxed text-muted">{pub.description}</p>
               </div>
               <span class="ml-auto shrink-0 rounded-full border border-rule px-2 py-0.5 text-xs font-medium text-faint">
@@ -58,32 +80,67 @@ const totalAnalysts = publishers.reduce((n, p) => n + p.analysts.length, 0);
               </span>
             </div>
 
+            {/* clickable analyst rows -> individual profile pages */}
             <ul class="mt-4 grid gap-2 border-t border-rule pt-4 sm:grid-cols-2">
-              {pub.analysts.map((a) => (
-                <li class="flex items-center gap-2.5">
-                  <Avatar name={a.name} size={30} class="shrink-0" />
-                  <div class="min-w-0">
-                    <p class="truncate text-sm font-medium text-ink">{a.name}</p>
-                    <p class="truncate text-xs text-faint">{a.focus}</p>
-                  </div>
-                </li>
-              ))}
+              {pub.analysts.map((a) => {
+                const slug = analystSlug(pub.name, a.name, a.slug);
+                const e = perfBySlug.get(slug);
+                const rated = e?.rated ?? false;
+                return (
+                  <li>
+                    <a
+                      href={withBase(`/community/${slug}/`)}
+                      class="group flex items-center gap-2.5 rounded-lg border border-transparent px-2 py-1.5 no-underline transition-colors hover:border-rule hover:bg-paper"
+                    >
+                      <Avatar name={a.name} size={30} class="shrink-0" />
+                      <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-medium text-ink group-hover:text-accent">{a.name}</p>
+                        <p class="truncate text-xs text-faint">{a.focus}</p>
+                      </div>
+                      {rated ? (
+                        <ReturnFigure ratio={e!.perf.avgReturn} class="text-xs" />
+                      ) : (
+                        <span class="shrink-0 text-[0.6rem] font-medium uppercase tracking-wide text-faint">Unrated</span>
+                      )}
+                      <span class="shrink-0 text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-accent" aria-hidden="true">›</span>
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
-
-            <p class="mt-4 text-sm font-medium text-ink group-hover:text-accent">
-              View &amp; discuss {pub.name} &rarr;
-            </p>
-          </a>
+          </section>
         ))
       }
     </div>
 
+    {/* site-wide community chat */}
+    <section class="mt-14">
+      <div class="flex items-center gap-3">
+        <span class="h-px flex-1 bg-rule"></span>
+        <span class="text-center text-xs font-semibold uppercase tracking-wide text-faint">
+          Community discussion — not editorial content
+        </span>
+        <span class="h-px flex-1 bg-rule"></span>
+      </div>
+      <h2 class="mt-4 font-serif text-xl text-ink">Community chat</h2>
+      <p class="mt-1 text-sm text-muted">
+        General discussion about publishers, analysts, and their calls. To talk
+        about one analyst, open their profile.
+      </p>
+      <div class="mt-4">
+        <ChatLog seed="community/general" ticker="the community" outcome="active" ratio={null} label="Open community chat" open={true} />
+      </div>
+    </section>
+
     <p class="mt-12 border-t border-rule pt-4 text-xs leading-relaxed text-faint">
-      Directory compiled from
+      Analyst list compiled from
       <a href={PUBLISHERS_SOURCE.url} rel="nofollow noopener" class="text-muted underline">
         the crowdfundingsucks.com guru directory
-      </a>. Listing a publisher or analyst here is not a characterization of them
-      and is not investment advice. Coverage focus is as described by the source.
+      </a>. Track records are computed from cited facts via the
+      <a href={withBase('/methodology/')} class="text-muted underline">methodology</a>;
+      an analyst with no sourced calls shows “Unrated.” Not investment advice.
+      Profiled parties may use the
+      <a href={withBase('/right-of-reply/')} class="text-muted underline">right of reply</a>.
     </p>
   </Container>
 </BaseLayout>
