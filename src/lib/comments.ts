@@ -110,8 +110,24 @@ export async function postComment(
     .select(COMMENT_COLS)
     .single();
 
-  if (error) return { ok: false, message: error.message };
+  if (error) return { ok: false, message: friendlyError(error.message) };
   return { ok: true, comment: data as Comment };
+}
+
+/**
+ * Turn raw Postgres/PostgREST errors into something a user should see. The most
+ * common case before setup is the comments table not existing yet — show a
+ * "coming soon" note rather than a cryptic schema-cache error.
+ */
+export function friendlyError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes('could not find the table') || m.includes('schema cache') || m.includes('does not exist')) {
+    return 'Live discussion isn’t switched on yet — check back soon.';
+  }
+  if (m.includes('row-level security') || m.includes('violates row-level')) {
+    return 'You don’t have permission to do that.';
+  }
+  return message;
 }
 
 /**

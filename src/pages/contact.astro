@@ -1,9 +1,50 @@
 ---
-import Placeholder from '../components/Placeholder.astro';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Container from '../components/Container.astro';
+import { withBase } from '../lib/url';
+
+/**
+ * Contact / DMCA / corrections. The endpoint the footer and the right-of-reply
+ * process point to. Kept simple and honest — one contact channel, clear about
+ * what each request type needs.
+ */
+const EMAIL = 'mitchellfgibson@berkeley.edu';
 ---
 
-<Placeholder
-  title="Contact & DMCA"
-  phase="Coming soon"
-  blurb="How to reach us, including the process for DMCA and other takedown or correction requests. Contact details will be posted here."
-/>
+<BaseLayout
+  title="Contact"
+  description="How to reach us — corrections, right-of-reply, DMCA, and abuse reports."
+>
+  <Container width="prose" class="py-12">
+    <p class="text-sm font-semibold uppercase tracking-wide text-accent">Contact</p>
+    <h1 class="mt-2 font-serif text-3xl text-ink sm:text-4xl">Get in touch</h1>
+
+    <p class="mt-6 text-lg leading-relaxed text-muted">
+      Questions, corrections, and takedown or right-of-reply requests all reach us
+      at one address. We read everything and act on legitimate requests promptly.
+    </p>
+
+    <div class="mt-6 rounded-lg border border-rule bg-paper-raised p-5">
+      <p class="text-xs font-semibold uppercase tracking-wide text-faint">Email</p>
+      <a href={`mailto:${EMAIL}`} class="mt-1 inline-block font-mono text-ink hover:text-accent">{EMAIL}</a>
+    </div>
+
+    <h2 class="mt-12 font-serif text-2xl text-ink">What to include</h2>
+    <ul class="mt-4 space-y-3 text-muted">
+      <li><strong class="text-ink">Correction.</strong> The page, the specific datum that’s wrong, and a source for the correct value.</li>
+      <li>
+        <strong class="text-ink">Right of reply.</strong> Put “Right of reply” in the subject, name the profile, and include your statement or the item you’re disputing. See the
+        <a href={withBase('/right-of-reply/')} class="text-accent underline">right-of-reply process</a>.
+      </li>
+      <li><strong class="text-ink">DMCA / takedown.</strong> Identify the material, your rights in it, and your contact details. Valid notices are actioned quickly.</li>
+      <li><strong class="text-ink">Abuse report.</strong> Link the specific comment. Community discussion is moderated separately from editorial content.</li>
+    </ul>
+
+    <p class="mt-12 text-xs leading-relaxed text-faint">
+      This site reports cited facts and computed figures — not investment advice
+      and not a characterization of any person or company.
+      <a href={withBase('/methodology/')} class="text-muted underline">Methodology</a> ·
+      <a href={withBase('/right-of-reply/')} class="text-muted underline">Right of reply</a>
+    </p>
+  </Container>
+</BaseLayout>
