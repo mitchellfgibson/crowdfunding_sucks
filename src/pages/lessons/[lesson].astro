@@ -1,0 +1,63 @@
+---
+import { getCollection, render } from 'astro:content';
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Container from '../../components/Container.astro';
+import { withBase } from '../../lib/url';
+
+export const getStaticPaths = (async () => {
+  const lessons = await getCollection('lessons');
+  return lessons.map((l) => ({ params: { lesson: l.data.slug ?? l.id }, props: { lesson: l } }));
+}) satisfies GetStaticPaths;
+
+const { lesson } = Astro.props;
+const d = lesson.data;
+const { Content } = await render(lesson);
+const published = d.publishDate.toLocaleDateString('en-US', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
+---
+
+<BaseLayout title={d.title} description={d.description}>
+  <Container width="prose" class="py-12">
+    <nav class="text-xs text-faint" aria-label="Breadcrumb">
+      <a href={withBase('/')} class="text-muted no-underline hover:underline">Home</a>
+      <span class="mx-1.5">›</span>
+      <a href={withBase('/lessons/')} class="text-muted no-underline hover:underline">Lessons</a>
+      <span class="mx-1.5">›</span>
+      <span class="text-ink">{d.title}</span>
+    </nav>
+
+    <header class="mt-3 border-b border-rule pb-5">
+      <h1 class="font-serif text-3xl text-ink sm:text-4xl">{d.title}</h1>
+      <p class="mt-3 text-lg leading-relaxed text-muted">{d.description}</p>
+      <p class="mt-3 text-xs text-faint">{published}</p>
+    </header>
+
+    {/* MDX body, styled for long-form reading */}
+    <article
+      class="mt-8 leading-relaxed text-ink
+        [&_h2]:mt-10 [&_h2]:font-serif [&_h2]:text-2xl [&_h2]:text-ink
+        [&_h3]:mt-6 [&_h3]:font-serif [&_h3]:text-xl [&_h3]:text-ink
+        [&_p]:mt-4 [&_p]:text-ink
+        [&_ul]:mt-4 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-6
+        [&_ol]:mt-4 [&_ol]:list-decimal [&_ol]:space-y-1.5 [&_ol]:pl-6
+        [&_li]:text-muted [&_li_strong]:text-ink
+        [&_a]:text-accent [&_a]:underline
+        [&_strong]:text-ink
+        [&_blockquote]:mt-5 [&_blockquote]:border-l-2 [&_blockquote]:border-accent/40 [&_blockquote]:pl-4 [&_blockquote]:text-muted [&_blockquote]:italic
+        [&_hr]:my-8 [&_hr]:border-rule
+        [&_em]:text-muted"
+    >
+      <Content />
+    </article>
+
+    <p class="mt-12 border-t border-rule pt-4 text-xs leading-relaxed text-faint">
+      Educational only — a general explanation, not investment advice or a
+      recommendation about any specific deal, platform, or person.
+      <a href={withBase('/lessons/')} class="text-muted underline">← All lessons</a>
+    </p>
+  </Container>
+</BaseLayout>

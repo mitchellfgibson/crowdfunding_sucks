@@ -1,9 +1,80 @@
 ---
-import Placeholder from '../components/Placeholder.astro';
+import { getCollection } from 'astro:content';
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Container from '../components/Container.astro';
+import { withBase } from '../lib/url';
+
+/**
+ * Lessons index — evergreen investor education. Original explainers (general
+ * concepts, not fabricated data). Ordered as a sensible reading sequence first,
+ * then by date.
+ */
+const order = [
+  'what-is-reg-cf',
+  'how-cap-tables-work',
+  'dilution-explained',
+  'reading-a-form-c',
+  'evaluating-a-deal',
+  'why-deals-fail',
+];
+
+const lessons = (await getCollection('lessons')).filter((l) => !l.data.draft);
+const slugOf = (l: (typeof lessons)[number]) => l.data.slug ?? l.id;
+const sorted = [...lessons].sort((a, b) => {
+  const ia = order.indexOf(slugOf(a));
+  const ib = order.indexOf(slugOf(b));
+  if (ia !== -1 && ib !== -1) return ia - ib;
+  if (ia !== -1) return -1;
+  if (ib !== -1) return 1;
+  return b.data.publishDate.getTime() - a.data.publishDate.getTime();
+});
 ---
 
-<Placeholder
+<BaseLayout
   title="Lessons"
-  phase="Coming in Phase 1"
-  blurb="Plain-English guides to cap tables, dilution, evaluating a Reg CF/A raise, reading a Form C, and the ways deals fail. The first lessons are being written."
-/>
+  description="Plain-English investor education on equity crowdfunding: cap tables, dilution, reading a Form C, evaluating a deal, and why deals fail."
+>
+  <Container class="py-10">
+    <header class="max-w-3xl">
+      <p class="text-sm font-semibold uppercase tracking-wide text-accent">Education</p>
+      <h1 class="mt-2 text-3xl font-semibold text-ink sm:text-4xl">Lessons</h1>
+      <p class="mt-4 text-lg leading-relaxed text-muted">
+        Understand the mechanics before the pitch. Plain-English guides to how
+        equity crowdfunding actually works — cap tables, dilution, the documents,
+        evaluating a deal, and the ways deals fail.
+      </p>
+    </header>
+
+    <div class="mt-8 grid gap-3 sm:grid-cols-2">
+      {
+        sorted.map((l, i) => (
+          <a
+            href={withBase(`/lessons/${slugOf(l)}/`)}
+            class="group flex flex-col rounded-xl border border-rule bg-paper-raised p-5 no-underline shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent/40 hover:bg-accent/5 hover:shadow-md"
+          >
+            <div class="flex items-baseline gap-2">
+              <span class="font-mono text-xs text-faint">{String(i + 1).padStart(2, '0')}</span>
+              <h2 class="font-serif text-xl text-ink group-hover:text-accent">{l.data.title}</h2>
+            </div>
+            <p class="mt-2 flex-1 text-sm leading-relaxed text-muted">{l.data.description}</p>
+            <span class="mt-4 text-sm font-medium text-ink group-hover:text-accent">Read &rarr;</span>
+          </a>
+        ))
+      }
+    </div>
+
+    {
+      lessons.length === 0 && (
+        <p class="mt-8 rounded-xl border border-dashed border-rule px-4 py-8 text-sm text-muted">
+          Lessons are being written.
+        </p>
+      )
+    }
+
+    <p class="mt-12 border-t border-rule pt-4 text-xs leading-relaxed text-faint">
+      Educational content only — general explanations of how equity crowdfunding
+      works, not investment advice and not a recommendation about any specific
+      deal, platform, or person.
+    </p>
+  </Container>
+</BaseLayout>
